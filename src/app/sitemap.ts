@@ -1,19 +1,19 @@
 import type { MetadataRoute } from 'next'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { SITE_URL as BASE } from '@/lib/site'
 
-const BASE = 'https://householdtalent.vercel.app'
+export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const supabase = await createClient()
-
-  const { data: roles } = await supabase
+  // Public role pages are rendered with the service role, so the sitemap reads
+  // the same way (the anon key can't see roles under RLS).
+  const { data: roles } = await createAdminClient()
     .from('roles')
-    .select('id, updated_at, created_at, status')
-    .in('status', ['active', 'closed'])
+    .select('id, updated_at, created_at')
+    .eq('status', 'active')
     .order('created_at', { ascending: false })
 
   const roleEntries: MetadataRoute.Sitemap = (roles || [])
-    .filter((r) => r.status === 'active')
     .map((r) => ({
       url: `${BASE}/jobs/${r.id}`,
       lastModified: r.updated_at || r.created_at,

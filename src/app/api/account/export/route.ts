@@ -17,26 +17,42 @@ export async function GET() {
 
   const admin = createAdminClient()
 
+  const [{ data: candidateProfile }, { data: employerProfile }] = await Promise.all([
+    admin.from('candidate_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+    admin.from('employer_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+  ])
+  const candidateId = candidateProfile?.id ?? null
+  const employerId = employerProfile?.id ?? null
+  const none = Promise.resolve({ data: [] as unknown[] })
+
   const [
     { data: profile },
-    { data: candidateProfile },
-    { data: employerProfile },
     { data: introsAsCandidate },
     { data: introsAsEmployer },
+    { data: experience },
+    { data: certifications },
+    { data: references },
+    { data: roles },
     { data: notifications },
     { data: subscriptions },
     { data: photoObjs },
     { data: cvObjs },
+    { data: docObjs },
+    { data: policeObjs },
   ] = await Promise.all([
     admin.from('profiles').select('*').eq('id', user.id).maybeSingle(),
-    admin.from('candidate_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-    admin.from('employer_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-    admin.from('contact_requests').select('*').eq('candidate_id', user.id),
-    admin.from('contact_requests').select('*').eq('employer_id', user.id),
+    candidateId ? admin.from('contact_requests').select('id, role_id, message, status, candidate_consent, created_at, introduced_at').eq('candidate_id', candidateId) : none,
+    employerId ? admin.from('contact_requests').select('id, role_id, candidate_id, message, status, created_at, introduced_at').eq('employer_id', employerId) : none,
+    candidateId ? admin.from('experience_entries').select('*').eq('candidate_id', candidateId) : none,
+    candidateId ? admin.from('certifications').select('*').eq('candidate_id', candidateId) : none,
+    candidateId ? admin.from('references').select('*').eq('candidate_id', candidateId) : none,
+    employerId ? admin.from('roles').select('*').eq('employer_id', employerId) : none,
     admin.from('notifications').select('*').eq('user_id', user.id),
     admin.from('subscriptions').select('*').eq('user_id', user.id),
     admin.storage.from('candidate-photos').list(user.id),
     admin.storage.from('resumes').list(user.id),
+    admin.storage.from('candidate-documents').list(user.id),
+    admin.storage.from('police-checks').list(user.id),
   ])
 
   // Generate signed URLs (1 hour) for the user's own files
@@ -47,9 +63,11 @@ export async function GET() {
     return (data || []).map((d) => ({ name: d.path, url: d.signedUrl }))
   }
 
-  const [photoUrls, cvUrls] = await Promise.all([
+  const [photoUrls, cvUrls, docUrls, policeUrls] = await Promise.all([
     signed('candidate-photos', photoObjs),
     signed('resumes', cvObjs),
+    signed('candidate-documents', docObjs),
+    signed('police-checks', policeObjs),
   ])
 
   const dump = {
@@ -66,11 +84,17 @@ export async function GET() {
       asCandidate: introsAsCandidate || [],
       asEmployer: introsAsEmployer || [],
     },
+    experience: experience || [],
+    certifications: certifications || [],
+    references: references || [],
+    roles: roles || [],
     notifications: notifications || [],
     subscriptions: subscriptions || [],
     files: {
       photos: photoUrls,
       cvs: cvUrls,
+      documents: docUrls,
+      policeChecks: policeUrls,
     },
     note: 'Signed file URLs expire one hour after this export was generated.',
   }

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPin, Clock, ArrowRight, Lock, Briefcase } from 'lucide-react'
 
@@ -53,7 +53,9 @@ function formatPostedAgo(dateStr: string): string {
 }
 
 export async function FeaturedRoles() {
-  const supabase = await createClient()
+  // Visitors are anonymous and RLS hides roles from the anon key, so read the
+  // (public, non-sensitive) listing columns with the service role.
+  const supabase = createAdminClient()
   const { data: roles } = await supabase
     .from('roles')
     .select(

@@ -4,32 +4,32 @@ import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle, Download, Loader2, AlertCircle, FileText } from 'lucide-react'
 import Link from 'next/link'
-import { PRODUCT_TEMPLATES, RESOURCE_PRODUCTS, type ResourceProductId } from '@/lib/resources/config'
-import { TEMPLATES, type Template, type TemplateSection } from '@/lib/resources/templates'
+import type { Template, TemplateSection } from '@/lib/resources/templates'
 
 export default function ResourceSuccessPage() {
   const params = useSearchParams()
   const sessionId = params.get('session_id')
-  const productId = params.get('product') as ResourceProductId | null
   const [status, setStatus] = useState<'loading' | 'verified' | 'error'>('loading')
+  const [productName, setProductName] = useState<string | null>(null)
+  const [templates, setTemplates] = useState<Template[]>([])
 
   useEffect(() => {
-    if (!sessionId || !productId) {
+    if (!sessionId) {
       setStatus('error')
       return
     }
 
-    // Verify the session with our API
-    fetch(`/api/resources/verify?session_id=${sessionId}`)
-      .then((res) => {
-        if (res.ok) {
-          setStatus('verified')
-        } else {
-          setStatus('error')
-        }
+    // Verify the session with our API; it returns the templates that were paid for.
+    fetch(`/api/resources/verify?session_id=${encodeURIComponent(sessionId)}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const body = (await res.json()) as { productName: string; templates: Template[] }
+        setProductName(body.productName)
+        setTemplates(body.templates || [])
+        setStatus('verified')
       })
       .catch(() => setStatus('error'))
-  }, [sessionId, productId])
+  }, [sessionId])
 
   if (status === 'loading') {
     return (
@@ -62,10 +62,6 @@ export default function ResourceSuccessPage() {
     )
   }
 
-  // Get the templates this purchase unlocks
-  const templateIds = productId ? PRODUCT_TEMPLATES[productId] || [] : []
-  const product = productId ? RESOURCE_PRODUCTS[productId] : null
-
   return (
     <div>
       {/* Success Header */}
@@ -75,19 +71,15 @@ export default function ResourceSuccessPage() {
           Purchase Complete
         </h1>
         <p className="mt-2 text-sm text-neutral-400">
-          {product?.name} is ready to download
+          {productName} is ready to download
         </p>
       </div>
 
       {/* Download Cards */}
       <div className="space-y-6">
-        {templateIds.map((templateId) => {
-          const template = TEMPLATES[templateId]
-          if (!template) return null
-          return (
-            <TemplateDownloadCard key={templateId} template={template} />
-          )
-        })}
+        {templates.map((template) => (
+          <TemplateDownloadCard key={template.id} template={template} />
+        ))}
       </div>
 
       {/* Legal Disclaimer */}

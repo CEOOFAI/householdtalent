@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { candidatesForIntroductions } from '@/lib/candidates/employer-view'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   FileText,
@@ -134,7 +135,7 @@ export default async function EmployerDashboard() {
     created_at: string
     candidate_profiles: {
       headline: string | null
-      user_id: string
+      initials: string
       profiles: { first_name: string | null; last_name: string | null } | null
     } | null
     roles: { title: string } | null
@@ -147,16 +148,9 @@ export default async function EmployerDashboard() {
       .select(
         `
         id,
+        candidate_id,
         status,
         created_at,
-        candidate_profiles!contact_requests_candidate_id_fkey (
-          headline,
-          user_id,
-          profiles!candidate_profiles_user_id_fkey (
-            first_name,
-            last_name
-          )
-        ),
         roles (
           title
         )
@@ -166,7 +160,24 @@ export default async function EmployerDashboard() {
       .order('created_at', { ascending: false })
       .limit(5)
 
-    recentIntroductions = (intros as unknown as IntroductionRow[]) || []
+    const introRows = (intros || []) as unknown as (Omit<IntroductionRow, 'candidate_profiles'> & { candidate_id: string | null })[]
+    const candidates = await candidatesForIntroductions(introRows)
+    recentIntroductions = introRows.map((r) => {
+      const c = r.candidate_id ? candidates.get(r.candidate_id) : undefined
+      const nameParts = (c?.contact?.full_name || '').split(' ')
+      return {
+        ...r,
+        candidate_profiles: c
+          ? {
+              headline: c.headline,
+              initials: c.initials,
+              profiles: c.contact
+                ? { first_name: nameParts[0] || null, last_name: nameParts.slice(1).join(' ') || null }
+                : null,
+            }
+          : null,
+      }
+    })
   }
 
   // Fetch up to 5 active roles for the My Active Roles section
@@ -350,10 +361,7 @@ export default async function EmployerDashboard() {
                   if (intro.status === 'introduced' && profile?.first_name) {
                     candidateName = `${profile.first_name} ${profile.last_name || ''}`.trim()
                   } else if (cp?.headline) {
-                    const initial =
-                      profile?.first_name?.[0]?.toUpperCase() ||
-                      profile?.last_name?.[0]?.toUpperCase() ||
-                      'C'
+                    const initial = cp.initials?.slice(-1) || 'C'
                     candidateName = `${cp.headline} · ${initial}.`
                   } else {
                     candidateName = 'Candidate'

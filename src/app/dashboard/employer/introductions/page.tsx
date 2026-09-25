@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { candidatesForIntroductions } from '@/lib/candidates/employer-view'
 import { Card, CardContent } from '@/components/ui/card'
 import { Handshake, Clock, CheckCircle, XCircle, Inbox } from 'lucide-react'
 
@@ -14,7 +15,7 @@ interface EmployerIntroRow {
   created_at: string
   roles: { title: string } | null
   candidate_profiles: {
-    user_id: string
+    initials: string
     headline: string | null
     salutation: string | null
     location: string | null
@@ -97,6 +98,7 @@ export default async function EmployerIntroductionsPage() {
     .from('contact_requests')
     .select(`
       id,
+      candidate_id,
       message,
       status,
       candidate_consent,
@@ -104,21 +106,40 @@ export default async function EmployerIntroductionsPage() {
       candidate_consent_at,
       introduced_at,
       created_at,
-      roles ( title ),
-      candidate_profiles!contact_requests_candidate_id_fkey (
-        user_id,
-        headline,
-        salutation,
-        location,
-        languages,
-        experience_years,
-        profiles!candidate_profiles_user_id_fkey ( first_name, last_name, email, phone )
-      )
+      roles ( title )
     `)
     .eq('employer_id', employerProfile.id)
     .order('created_at', { ascending: false })
 
-  const rows = (requests || []) as unknown as EmployerIntroRow[]
+  // Candidate details come from the server-side helper: anonymised until the
+  // introduction is complete, then name/email/phone are released.
+  const requestRows = (requests || []) as unknown as (Omit<EmployerIntroRow, 'candidate_profiles'> & { candidate_id: string | null })[]
+  const candidates = await candidatesForIntroductions(requestRows)
+  const rows: EmployerIntroRow[] = requestRows.map((r) => {
+    const c = r.candidate_id ? candidates.get(r.candidate_id) : undefined
+    const nameParts = (c?.contact?.full_name || '').split(' ')
+    return {
+      ...r,
+      candidate_profiles: c
+        ? {
+            initials: c.initials,
+            headline: c.headline,
+            salutation: c.salutation,
+            location: c.location,
+            languages: c.languages,
+            experience_years: c.experience_years,
+            profiles: c.contact
+              ? {
+                  first_name: nameParts[0] || null,
+                  last_name: nameParts.slice(1).join(' ') || null,
+                  email: c.contact.email,
+                  phone: c.contact.phone,
+                }
+              : null,
+          }
+        : null,
+    }
+  })
 
   // Pre-introduction: candidate identity is hidden. Only revealed once status === 'introduced'.
   function candidateLabel(row: EmployerIntroRow): string {
@@ -128,9 +149,7 @@ export default async function EmployerIntroductionsPage() {
       return `${profile.first_name} ${profile.last_name || ''}`.trim()
     }
     const salutation = cp?.salutation || 'Mx'
-    const initial = profile?.last_name?.[0]?.toUpperCase()
-      || profile?.first_name?.[0]?.toUpperCase()
-      || ''
+    const initial = cp?.initials?.slice(-1) || ''
     if (initial) return `${salutation}. ${initial}.`
     if (cp?.headline) return cp.headline
     return 'Candidate'

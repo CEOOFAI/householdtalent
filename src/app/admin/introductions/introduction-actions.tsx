@@ -51,6 +51,7 @@ export function IntroductionActions({
             admin_notes: notes || null,
           })
           .eq('id', requestId)
+          .eq('status', 'pending')
 
         if (error) throw error
 

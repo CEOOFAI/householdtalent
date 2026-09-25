@@ -218,13 +218,17 @@ export default async function JobsPage() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const supabase = createClient(url!, key!, { auth: { autoRefreshToken: false, persistSession: false } })
 
-  const { data: roles } = await supabase
+  const { data: roles, error } = await supabase
     .from('roles')
     .select(
       'id, title, role_type, position_type, location, description, start_date, application_deadline, closed_at, listing_tier, status, created_at',
     )
     .in('status', ['active', 'closed'])
     .order('created_at', { ascending: false })
+
+  // If the database can't be reached, fail the render so Vercel keeps serving
+  // the last good cached page instead of caching an empty "no roles" page.
+  if (error) throw new Error(`jobs fetch failed: ${error.message}`)
 
   const all = (roles || []) as PublicRoleRow[]
 

@@ -622,6 +622,15 @@ export default function CandidateProfilePage() {
       const rawLoc = (form.location || '').toLowerCase().trim().replace(/\s+/g, '_').replace(/-/g, '_')
       const normalizedLocation = LOC_ENUMS.find(v => rawLoc === v || rawLoc.includes(v) || v.includes(rawLoc)) || 'other'
 
+      const salaryMin = form.salaryMin ? parseInt(form.salaryMin) : null
+      const salaryMax = form.salaryMax ? parseInt(form.salaryMax) : null
+      const outOfRange = (v: number | null) => v !== null && (isNaN(v) || v < 10000 || v > 500000)
+      if (outOfRange(salaryMin) || outOfRange(salaryMax) || (salaryMin && salaryMax && salaryMin > salaryMax)) {
+        toast.error('Please enter an annual salary between £10,000 and £500,000 (minimum below maximum).')
+        setSubmitting(false)
+        return
+      }
+
       const payload: Record<string, unknown> = {
         location: normalizedLocation,
         headline: jobTitle,
@@ -631,8 +640,13 @@ export default function CandidateProfilePage() {
         skills: form.skills,
         languages: form.languages,
         availability: availability,
-        salary_expectation_min: form.salaryMin ? parseInt(form.salaryMin) : null,
-        salary_expectation_max: form.salaryMax ? parseInt(form.salaryMax) : null,
+        salary_expectation_min: salaryMin,
+        salary_expectation_max: salaryMax,
+        salary_min: salaryMin,
+        salary_max: salaryMax,
+        full_name: form.fullName.trim() || null,
+        email: form.email || null,
+        phone: form.phone || null,
         driving_licence: form.drivingLicence || null,
         nationality: form.nationality || null,
         right_to_work: form.rightToWork === true ? 'yes' : form.rightToWork === false ? 'no' : null,
@@ -640,7 +654,8 @@ export default function CandidateProfilePage() {
         live_preference: form.livePreference || null,
         schedule_preference: form.schedulePreference || null,
         available_from: form.availableFrom || null,
-        tier: form.profileType === 'premium' ? 'premium' : 'free',
+        // tier is set only by HHT / payment; status by the database guard keeps
+        // an already-approved profile approved when the candidate edits it.
         status: 'pending_review',
       }
       if (photoUrl) payload.photos = [photoUrl]

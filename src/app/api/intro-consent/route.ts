@@ -102,10 +102,13 @@ export async function PATCH(req: NextRequest) {
         candidate_consent_at: now,
         introduced_at: now,
       })
-      .eq('id', request_id);
+      .eq('id', request_id)
+      .eq('status', 'approved')
+      .eq('candidate_consent', 'pending');
 
     if (updateErr) {
-      return NextResponse.json({ error: updateErr.message }, { status: 500 });
+      console.error('intro consent update failed', updateErr.code);
+    return NextResponse.json({ error: 'Could not save your answer. Please try again.' }, { status: 500 });
     }
 
     // Notify employer the intro is now live
@@ -131,10 +134,13 @@ export async function PATCH(req: NextRequest) {
       candidate_consent_at: new Date().toISOString(),
       declined_by: 'candidate',
     })
-    .eq('id', request_id);
+    .eq('id', request_id)
+    .eq('status', 'approved')
+    .eq('candidate_consent', 'pending');
 
   if (updateErr) {
-    return NextResponse.json({ error: updateErr.message }, { status: 500 });
+    console.error('intro consent update failed', updateErr.code);
+    return NextResponse.json({ error: 'Could not save your answer. Please try again.' }, { status: 500 });
   }
 
   // Graceful, non-revealing message to the employer

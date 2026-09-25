@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   try {
     const { productId } = (await req.json()) as { productId: string }
 
-    if (!productId || !(productId in RESOURCE_PRODUCTS)) {
+    if (!productId || !Object.hasOwn(RESOURCE_PRODUCTS, productId)) {
       return NextResponse.json({ error: 'Invalid product' }, { status: 400 })
     }
 

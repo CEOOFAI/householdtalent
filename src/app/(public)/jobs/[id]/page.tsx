@@ -13,6 +13,8 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import type { Metadata } from 'next'
+import { jsonLd } from '@/lib/utils'
+import { SITE_URL } from '@/lib/site'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -93,7 +95,7 @@ export async function generateMetadata({
   }
 
   const loc = formatLocation(role.location)
-  const url = `https://householdtalent.vercel.app/jobs/${id}`
+  const url = `${SITE_URL}/jobs/${id}`
   const description = role.description
     ? role.description.slice(0, 155).replace(/\s+\S*$/, '') + '...'
     : `${role.title} role currently open in ${loc}. Curated household staffing through HouseHoldTalent.`
@@ -159,7 +161,7 @@ export default async function JobDetailPage({ params }: PageProps) {
     hiringOrganization: {
       '@type': 'Organization',
       name: 'HouseHoldTalent',
-      sameAs: 'https://householdtalent.vercel.app',
+      sameAs: SITE_URL,
     },
     jobLocation: {
       '@type': 'Place',
@@ -179,7 +181,7 @@ export default async function JobDetailPage({ params }: PageProps) {
     <main className="min-h-[80vh] py-10 sm:py-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(jobPostingJsonLd) }}
       />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Link

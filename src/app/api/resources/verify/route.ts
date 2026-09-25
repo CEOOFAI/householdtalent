@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe/config'
 import { createClient } from '@/lib/supabase/server'
+import { PRODUCT_TEMPLATES, RESOURCE_PRODUCTS, type ResourceProductId } from '@/lib/resources/config'
+import { TEMPLATES } from '@/lib/resources/templates'
 
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get('session_id')
@@ -32,7 +34,21 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 403 })
     }
 
-    return NextResponse.json({ verified: true, product: session.metadata.product_id })
+    // Template content is only sent after payment is verified, for the product
+    // that was actually paid for (never from the URL).
+    const productId = session.metadata.product_id as ResourceProductId
+    if (!Object.hasOwn(RESOURCE_PRODUCTS, productId)) {
+      return NextResponse.json({ error: 'Unknown product' }, { status: 400 })
+    }
+    const templates = (PRODUCT_TEMPLATES[productId] || [])
+      .map((id) => TEMPLATES[id])
+      .filter(Boolean)
+    return NextResponse.json({
+      verified: true,
+      product: productId,
+      productName: RESOURCE_PRODUCTS[productId].name,
+      templates,
+    })
   } catch {
     return NextResponse.json({ error: 'Verification failed' }, { status: 500 })
   }

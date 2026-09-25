@@ -1,27 +1,10 @@
 import Link from 'next/link'
 import { Lock, Quote, ShieldCheck } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { CandidateCard } from './candidate-card'
 import type { PublicCandidate } from './types'
 
 export const revalidate = 60
-
-// Extract storage path from a Supabase public URL like
-// https://<ref>.supabase.co/storage/v1/object/public/candidate-photos/<path>
-function extractCandidatePhotoPath(raw: string): string | null {
-  const m = raw.match(/\/storage\/v1\/object\/(?:public|sign)\/candidate-photos\/([^?]+)/)
-  return m ? m[1] : null
-}
-
-async function resolvePhoto(raw: string | null | undefined, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
-  if (!raw) return null
-  if (raw.startsWith('https://image.pollinations.ai/')) return raw
-  const path = extractCandidatePhotoPath(raw)
-  if (!path) return raw // unknown host, leave as-is
-  const { data } = await admin.storage.from('candidate-photos').createSignedUrl(path, 600)
-  return data?.signedUrl ?? null
-}
 
 async function getActiveCandidates(): Promise<PublicCandidate[]> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -31,38 +14,37 @@ async function getActiveCandidates(): Promise<PublicCandidate[]> {
   const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
   const { data, error } = await sb
     .from('candidate_profiles')
-    .select('id, slug, salutation, full_name, headline, bio, roles, skills, languages, location, experience_years, photos, availability, public_listing_consent, status')
+    .select('id, slug, salutation, full_name, headline, bio, roles, skills, languages, location, experience_years, availability')
     .eq('status', 'active')
     .eq('public_listing_consent', true)
     .order('updated_at', { ascending: false })
     .limit(24)
 
-  if (error) {
-    console.error('candidates fetch failed:', error.message)
-    return []
-  }
+  // Throw rather than return [] so a database outage doesn't get cached as an
+  // empty page; Vercel keeps serving the last good version instead.
+  if (error) throw new Error(`candidates fetch failed: ${error.message}`)
 
-  const admin = createAdminClient()
-
-  return await Promise.all((data ?? []).map(async row => {
+  return (data ?? []).map(row => {
     const lastInitial = (row.full_name ?? '').split(' ').slice(-1)[0]?.charAt(0) ?? '?'
     const displayName = `${row.salutation ?? 'Mr.'} ${lastInitial}.`
-    const rawPhoto = (row.photos ?? [])[0] ?? null
-    const photo = await resolvePhoto(rawPhoto, admin)
+    // Photos are never shown publicly: a CSS blur can be removed by anyone who
+    // views the page source, so the original image would leak. Cards use the
+    // initials placeholder instead.
+    const photo: string | null = null
     return {
       id: row.id,
       slug: row.slug,
       displayName,
       headline: row.headline ?? row.roles?.[0] ?? 'Household Professional',
       location: row.location ?? 'Available across Spain & UK',
-      bio: row.bio ?? '',
+      bio: truncate(row.bio ?? '', 180),
       skills: (row.skills ?? []).slice(0, 3),
       experienceYears: row.experience_years ?? 0,
       languages: row.languages ?? [],
       photo,
       availability: humaniseAvailability(row.availability),
     }
-  }))
+  })
 }
 
 function humaniseAvailability(value: string | null | undefined): string {
@@ -157,4 +139,9 @@ export default async function CandidatesPage() {
       </div>
     </div>
   )
+}
+
+function truncate(text: string, max: number): string {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  return clean.length > max ? `${clean.slice(0, max).replace(/\s+\S*$/, '')}…` : clean
 }
