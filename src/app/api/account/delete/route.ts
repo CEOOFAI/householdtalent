@@ -20,31 +20,18 @@ export async function POST() {
   const admin = createAdminClient()
 
   try {
-    // 1. Wipe storage objects: candidate photos + CV files
-    //    Bucket convention is <bucket>/<userId>/<filename>
-    const { data: photoObjs } = await admin.storage
-      .from('candidate-photos')
-      .list(user.id)
-    if (photoObjs && photoObjs.length > 0) {
-      await admin.storage
-        .from('candidate-photos')
-        .remove(photoObjs.map((o) => `${user.id}/${o.name}`))
+    // 1. Wipe storage objects in every bucket that holds user files,
+    //    including police checks. Bucket convention is <bucket>/<userId>/<filename>
+    for (const bucket of ['candidate-photos', 'resumes', 'candidate-documents', 'police-checks']) {
+      const { data: objs } = await admin.storage.from(bucket).list(user.id)
+      if (objs && objs.length > 0) {
+        await admin.storage.from(bucket).remove(objs.map((o) => `${user.id}/${o.name}`))
+      }
     }
 
-    const { data: cvObjs } = await admin.storage.from('resumes').list(user.id)
-    if (cvObjs && cvObjs.length > 0) {
-      await admin.storage
-        .from('resumes')
-        .remove(cvObjs.map((o) => `${user.id}/${o.name}`))
-    }
-
-    const { data: docObjs } = await admin.storage
-      .from('candidate-documents')
-      .list(user.id)
-    if (docObjs && docObjs.length > 0) {
-      await admin.storage
-        .from('candidate-documents')
-        .remove(docObjs.map((o) => `${user.id}/${o.name}`))
+    // Contact-form enquiries are keyed by email, not user id.
+    if (user.email) {
+      await admin.from('contact_leads').delete().eq('email', user.email)
     }
 
     // 2. Delete the auth user. Profiles + candidate_profiles + employer_profiles

@@ -1,10 +1,10 @@
 // Email helper (Resend). No-ops gracefully if RESEND_API_KEY is missing so
 // preview deploys don't crash on the admin status flow.
 import { Resend } from 'resend'
+import { SITE_URL } from '@/lib/site'
 
 const FROM = process.env.RESEND_FROM || 'HouseHoldTalent <hello@householdtalent.com>'
 const CONTACT_EMAIL = process.env.RESEND_CONTACT_EMAIL || 'hello@householdtalent.com'
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://householdtalent.com'
 const SITE_LABEL = SITE_URL.replace(/^https?:\/\//, '')
 
 let cached: Resend | null = null

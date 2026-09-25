@@ -185,8 +185,10 @@ export default function CandidateApplyPage() {
         </h1>
         <p className="mt-3 text-sm leading-relaxed text-neutral-400">
           HouseHoldTalent is a private network. Access is by application,
-          referral or recommendation only. We review every submission
-          personally before extending an invitation.
+          referral or recommendation only, and membership is complimentary.
+          Every application is individually reviewed by our team. We recognise
+          experience in private households, family offices, estates, yachts
+          and recognised luxury hospitality.
         </p>
       </div>
 
@@ -288,7 +290,7 @@ export default function CandidateApplyPage() {
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label htmlFor="yearsExperience" className="text-sm font-medium text-neutral-300">
-                Years in private households
+                Years of relevant experience
               </label>
               <input
                 id="yearsExperience"

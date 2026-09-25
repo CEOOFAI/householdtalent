@@ -5,6 +5,17 @@
 
 :root {
   --radius: 0.625rem;
+
+  /* Motion tokens — restrained, ease-out, short */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-reveal: 560ms;
+  --gold: #9B7B3C;
+  --gold-glow: rgba(155, 123, 60, 0.22);
 }
 
 @theme inline {
@@ -26,7 +37,7 @@
   --color-secondary: #1A1A1A;
   --color-secondary-foreground: #AAAAAA;
   --color-muted: #222222;
-  --color-muted-foreground: #888888;
+  --color-muted-foreground: #9A9A9A; /* raised from #888 for AA contrast on #111 cards */
 
   /* Warm cream for light sections */
   --color-surface-light: #F5F0EB;
@@ -90,15 +101,118 @@
 @layer utilities {
   /* Gold gradient button */
   .btn-gold {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
     background: linear-gradient(135deg, #9B7B3C 0%, #6B5525 100%);
     color: #FFFFFF;
     font-weight: 600;
     border: none;
-    transition: all 0.2s;
+    transition:
+      background var(--duration-base) var(--ease-out-quart),
+      box-shadow var(--duration-base) var(--ease-out-quart),
+      transform var(--duration-fast) var(--ease-out-quart);
+  }
+  /* Sheen sweep on hover */
+  .btn-gold::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.22) 50%,
+      transparent 65%
+    );
+    transform: translateX(-120%);
   }
   .btn-gold:hover {
     background: linear-gradient(135deg, #AB8B4C 0%, #7B6535 100%);
     box-shadow: 0 4px 20px rgba(155, 123, 60, 0.4);
+  }
+  .btn-gold:hover::after {
+    animation: sheen 900ms var(--ease-out-quart) 1;
+  }
+  .btn-gold:active {
+    transform: scale(0.98);
+  }
+
+  /* Card hover: small lift + soft gold glow */
+  .card-lift {
+    transition:
+      transform var(--duration-slow) var(--ease-out-quart),
+      box-shadow var(--duration-slow) var(--ease-out-quart),
+      border-color var(--duration-slow) var(--ease-out-quart);
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    border-color: rgba(155, 123, 60, 0.45);
+    box-shadow:
+      0 10px 30px -12px rgba(0, 0, 0, 0.55),
+      0 0 0 1px rgba(155, 123, 60, 0.12),
+      0 8px 28px -10px var(--gold-glow);
+  }
+
+  /* Faint-but-legible text for small print on dark surfaces */
+  .text-faint {
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  /* Animated gold underline for inline nav links (see components/motion/nav-link) */
+  .link-underline {
+    position: relative;
+  }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -6px;
+    height: 1px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--duration-slow) var(--ease-out-quart);
+  }
+  .link-underline:hover::after,
+  .link-underline[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+
+  /* Entrance utilities */
+  .animate-fade-up {
+    animation: fade-in-up var(--duration-slow) var(--ease-out-quart) both;
+  }
+  .animate-fade-in {
+    animation: fade-in var(--duration-slow) var(--ease-out-quart) both;
+  }
+  .animate-scale-in {
+    animation: scale-in var(--duration-base) var(--ease-out-quart) both;
+  }
+  /* Page enter: 200ms fade + 8px rise. `backwards` fill so the final state
+     is the element's own style (no lingering transform / containing block). */
+  .animate-page-in {
+    animation: fade-in-up var(--duration-base) var(--ease-out-quart) backwards;
+  }
+  .animate-page-fade {
+    animation: fade-in var(--duration-base) var(--ease-out-quart) backwards;
+  }
+  .animate-shimmer {
+    background-image: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.06) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s var(--ease-in-out-soft) infinite;
+  }
+  /* Stagger helpers: set style={{ "--stagger-i": n }} on children */
+  .stagger-item {
+    animation-delay: calc(var(--stagger-i, 0) * 45ms);
   }
 
   /* Ornate dark section background */
@@ -124,6 +238,72 @@
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Focus — gold ring for keyboard users on links / buttons            */
+/* ------------------------------------------------------------------ */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [role="tab"]:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Keyframes                                                          */
+/* ------------------------------------------------------------------ */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+@keyframes sheen {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(120%); }
+}
+
+@keyframes slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
+}
+
+/* ------------------------------------------------------------------ */
+/* Scroll reveal (components/motion/reveal.tsx)                       */
+/* Content is visible by default; JS only adds data-reveal="hidden"   */
+/* for elements that are still below the fold after mount.            */
+/* ------------------------------------------------------------------ */
+[data-reveal="hidden"],
+[data-reveal-group="hidden"] > * {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+[data-reveal="shown"],
+[data-reveal-group="shown"] > * {
+  transition:
+    opacity var(--duration-reveal) var(--ease-out-quart),
+    transform var(--duration-reveal) var(--ease-out-quart);
+}
+
 /* Testimonials marquee */
 @keyframes marquee-left {
   0% { transform: translateX(0); }
@@ -145,9 +325,59 @@
   width: max-content;
 }
 
+/* Candidate showcase: slower marquee, pauses on hover / keyboard focus */
+.marquee-slow {
+  animation-duration: 90s;
+}
+.marquee-pause:hover .animate-marquee-left,
+.marquee-pause:hover .animate-marquee-right,
+.marquee-pause:focus-within .animate-marquee-left,
+.marquee-pause:focus-within .animate-marquee-right {
+  animation-play-state: paused;
+}
+
+/* ------------------------------------------------------------------ */
+/* Reduced motion — disable all decorative animation / transition      */
+/* ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee-left,
   .animate-marquee-right {
     animation: none;
+  }
+
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-page-in,
+  .animate-page-fade,
+  .animate-shimmer,
+  .btn-gold:hover::after {
+    animation: none !important;
+  }
+
+  .btn-gold,
+  .card-lift,
+  .link-underline::after,
+  [data-reveal],
+  [data-reveal-group] > *,
+  [data-motion] {
+    transition: none !important;
+  }
+
+  .btn-gold:active,
+  .card-lift:hover {
+    transform: none;
+  }
+
+  [data-reveal="hidden"],
+  [data-reveal-group="hidden"] > * {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* tw-animate-css enter/exit utilities */
+  .animate-in,
+  .animate-out {
+    animation: none !important;
   }
 }

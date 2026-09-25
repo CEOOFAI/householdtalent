@@ -15,9 +15,9 @@ import {
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Current Introductions | HouseHoldTalent',
+  title: 'Open Roles',
   description:
-    'Active opportunities across Gibraltar, the Costa del Sol and internationally. Selected, not listed. Access by referral, recommendation or application only.',
+    'Open household roles across Gibraltar, the Costa del Sol and internationally. HHT Approved members can browse suitable roles and request HHT-facilitated introductions.',
 }
 
 export const revalidate = 300 // refresh every 5 minutes
@@ -218,13 +218,17 @@ export default async function JobsPage() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   const supabase = createClient(url!, key!, { auth: { autoRefreshToken: false, persistSession: false } })
 
-  const { data: roles } = await supabase
+  const { data: roles, error } = await supabase
     .from('roles')
     .select(
       'id, title, role_type, position_type, location, description, start_date, application_deadline, closed_at, listing_tier, status, created_at',
     )
     .in('status', ['active', 'closed'])
     .order('created_at', { ascending: false })
+
+  // If the database can't be reached, fail the render so Vercel keeps serving
+  // the last good cached page instead of caching an empty "no roles" page.
+  if (error) throw new Error(`jobs fetch failed: ${error.message}`)
 
   const all = (roles || []) as PublicRoleRow[]
 
@@ -264,12 +268,12 @@ export default async function JobsPage() {
             </span>
           </div>
           <h1 className="font-heading text-3xl font-light leading-tight text-white sm:text-4xl lg:text-5xl">
-            Current Introductions
+            Open Roles
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-sm text-white/60 sm:text-base">
-            Active opportunities currently being placed through the network. Full
-            details and salary are shared with accepted members only. Access by
-            referral, recommendation or application.
+            Active opportunities within the network. HHT Approved members can
+            view full details and request an introduction. Access by referral,
+            recommendation or application.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link
@@ -338,8 +342,8 @@ export default async function JobsPage() {
                   href="/register/candidate"
                   className="mt-4 text-sm text-primary hover:underline"
                 >
-                  Apply to join the network and we will be in touch when
-                  something matches.
+                  Apply to join the network and browse new roles as they
+                  are added.
                 </Link>
               </CardContent>
             </Card>
@@ -350,13 +354,13 @@ export default async function JobsPage() {
             <div>
               <div className="mb-3 flex items-center gap-3">
                 <CheckCircle className="h-5 w-5 text-green-400" />
-                <h2 className="font-heading text-2xl text-white">Recently Placed</h2>
+                <h2 className="font-heading text-2xl text-white">Recently Filled</h2>
                 <span className="rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-400">
                   {recentlyFilled.length}
                 </span>
               </div>
               <p className="mb-5 text-sm text-white/50">
-                Roles we have already placed staff into. A snapshot of the
+                Roles recently filled through the network. A snapshot of the
                 households we work with.
               </p>
               <div className="grid gap-4 md:grid-cols-2">
@@ -373,9 +377,9 @@ export default async function JobsPage() {
               Don&apos;t see the right role?
             </h3>
             <p className="mx-auto mt-2 max-w-xl text-sm text-white/60">
-              Many of our placements are private mandates that never reach this
-              page. Apply to join the network and we will be in touch when the
-              right introduction opens.
+              Some roles are shared privately and never reach this page. Apply
+              to join the network to browse suitable roles and request
+              introductions.
             </p>
             <Link
               href="/register/candidate"

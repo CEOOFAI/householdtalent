@@ -98,7 +98,8 @@ export async function GET(req: NextRequest) {
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${name.replace(/\s+/g, '-')}-CV.pdf"`,
+        // ASCII fallback + RFC 5987 UTF-8 name so accented names don't break the header
+        'Content-Disposition': `attachment; filename="${name.normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/["\\]/g, '').replace(/\s+/g, '-') || 'HHT'}-CV.pdf"; filename*=UTF-8''${encodeURIComponent(name.replace(/\s+/g, '-'))}-CV.pdf`,
       },
     });
   } catch {

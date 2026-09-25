@@ -76,8 +76,8 @@ export default function PostRolePage() {
             Submit a Role Brief
           </h1>
           <p className="mt-4 text-lg text-white/60">
-            Tell us what you need. We will structure the rest and make
-            considered introductions.
+            Tell us what you need. We will structure the rest into a
+            professional brief, and HHT facilitates every introduction.
           </p>
 
           {/* Progress Steps */}
@@ -108,7 +108,7 @@ export default function PostRolePage() {
                 3
               </div>
               <span className="hidden text-sm text-muted-foreground sm:inline">
-                Receive Candidates
+                Request Introductions
               </span>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function PostRolePage() {
           <div className="flex flex-wrap items-center justify-center gap-6">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Shield className="h-4 w-4 text-primary" />
-              Curated &amp; Vetted
+              HHT Approved
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4 text-primary" />
@@ -375,7 +375,7 @@ export default function PostRolePage() {
           <p className="text-sm text-muted-foreground">
             Need help?{" "}
             <a href="/contact" className="text-primary underline underline-offset-4">
-              Our concierge team is here to assist
+              Our team is here to assist
             </a>
           </p>
         </div>

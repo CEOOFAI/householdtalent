@@ -13,6 +13,8 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import type { Metadata } from 'next'
+import { jsonLd } from '@/lib/utils'
+import { SITE_URL } from '@/lib/site'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -64,7 +66,7 @@ function formatStartDate(d: string | null): string | null {
 
 function publicSummary(text: string | null): string {
   if (!text) {
-    return 'A discreet household role with a private family. Sign up to view full role details, salary expectations and household profile.'
+    return 'A discreet household role with a private family. HHT Approved members can view full role details, salary expectations and household profile.'
   }
   const trimmed = text.replace(/\s+/g, ' ').trim()
   if (trimmed.length <= 320) return trimmed
@@ -89,17 +91,17 @@ export async function generateMetadata({
     .single()
 
   if (!role || role.status !== 'active') {
-    return { title: 'Role | HouseHoldTalent' }
+    return { title: 'Role' }
   }
 
   const loc = formatLocation(role.location)
-  const url = `https://householdtalent.vercel.app/jobs/${id}`
+  const url = `${SITE_URL}/jobs/${id}`
   const description = role.description
     ? role.description.slice(0, 155).replace(/\s+\S*$/, '') + '...'
-    : `${role.title} role currently open in ${loc}. Curated household staffing through HouseHoldTalent.`
+    : `${role.title} role currently open in ${loc}. Private, HHT-facilitated introductions through HouseHoldTalent.`
 
   return {
-    title: `${role.title}, ${loc} | HouseHoldTalent`,
+    title: `${role.title}, ${loc}`,
     description,
     openGraph: {
       title: `${role.title} in ${loc}`,
@@ -159,7 +161,7 @@ export default async function JobDetailPage({ params }: PageProps) {
     hiringOrganization: {
       '@type': 'Organization',
       name: 'HouseHoldTalent',
-      sameAs: 'https://householdtalent.vercel.app',
+      sameAs: SITE_URL,
     },
     jobLocation: {
       '@type': 'Place',
@@ -179,7 +181,7 @@ export default async function JobDetailPage({ params }: PageProps) {
     <main className="min-h-[80vh] py-10 sm:py-16">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jobPostingJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLd(jobPostingJsonLd) }}
       />
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <Link
@@ -237,7 +239,7 @@ export default async function JobDetailPage({ params }: PageProps) {
                     Salary on application
                   </p>
                   <p className="text-xs text-white/50">
-                    Shared with verified candidates
+                    Shared with HHT Approved members
                   </p>
                 </div>
               </div>
@@ -263,13 +265,14 @@ export default async function JobDetailPage({ params }: PageProps) {
               Interested in this role?
             </h2>
             <p className="mt-2 text-sm text-white/70">
-              Apply to join the network to view the full brief, salary range and
-              request an introduction. Every candidate is personally reviewed.
+              Apply to join the network to view the full brief and salary range,
+              and to request an introduction. Every candidate is individually
+              reviewed.
             </p>
             <ul className="mt-4 space-y-2 text-sm text-white/70">
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
-                Complimentary for accepted members
+                Complimentary for approved members
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
@@ -277,7 +280,7 @@ export default async function JobDetailPage({ params }: PageProps) {
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
-                Direct introductions to private households
+                HHT-facilitated introductions, only with your consent
               </li>
             </ul>
             <div className="mt-6 flex flex-wrap gap-3">

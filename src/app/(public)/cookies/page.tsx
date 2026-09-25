@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     'How HouseHoldTalent uses cookies and similar technologies, what data is collected, and how to manage your preferences.',
 }
 
-const LAST_UPDATED = '11 May 2026'
+const LAST_UPDATED = 'September 2026'
 
 export default function CookiePolicyPage() {
   return (

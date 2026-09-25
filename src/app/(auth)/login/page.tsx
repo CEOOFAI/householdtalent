@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { GoogleAuthButton } from "@/components/google-auth-button";
+import { safeRedirectPath } from "@/lib/utils";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -13,7 +14,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/dashboard";
+  const redirect = safeRedirectPath(searchParams.get("redirect"));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -12,7 +12,7 @@ const QUOTES = [
   "Not everyone can work in private households. And that's the point.",
   "Luxury isn't what you own. It's who you employ.",
   "The best household staff are never looking for work. They are waiting to be found.",
-  "Anyone can hire. Very few know how to place.",
+  "Anyone can advertise. Very few know who to introduce.",
   "Discretion is not a feature of private service. It is the foundation of it.",
   "The right introduction changes everything. The wrong one costs more than money.",
 ]
@@ -39,7 +39,7 @@ export function TestimonialsMarquee() {
     <section className="relative overflow-hidden bg-background py-20 sm:py-28">
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
         <span className="inline-block rounded-full border border-primary/40 bg-black/40 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-primary">
-          Trusted Network
+          Our Philosophy
         </span>
 
         <div className="mt-10 flex min-h-[180px] items-center justify-center sm:min-h-[220px]">
@@ -65,7 +65,7 @@ export function TestimonialsMarquee() {
         </div>
 
         <p className="mt-12 text-sm text-white/60">
-          Trusted by private households, family offices and estates across the UK, Europe and the Middle East.
+          Built for private households, family offices and estates in Gibraltar, the Costa del Sol and internationally.
         </p>
 
         <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-white/70">
@@ -74,7 +74,7 @@ export function TestimonialsMarquee() {
         </div>
 
         <p className="mt-5 text-xs text-white/50">
-          We also work with a select group of elite recruitment professionals who share our standards.
+          Recruitment professionals who share our standards are invited to join as HHT agency partners.
         </p>
       </div>
     </section>

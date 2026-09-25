@@ -26,3 +26,10 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Any other local env files
+.env.*
+!.env.local.example

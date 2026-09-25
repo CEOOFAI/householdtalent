@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getStripe } from '@/lib/stripe/config'
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import Stripe from 'stripe'
 
 export async function POST(req: NextRequest) {
@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  // Webhooks arrive with no user session, so writes go through the service role.
+  const supabase = createAdminClient()
 
   switch (event.type) {
     case 'checkout.session.completed': {

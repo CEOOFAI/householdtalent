@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
-    "Privacy Policy for Household Talent. How we collect, use, and protect your personal data.",
+    "Privacy Policy for HouseHoldTalent (HHT). How we collect, use and protect your personal data.",
 };
 
 export default function PrivacyPage() {
@@ -14,7 +14,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mt-4 text-sm text-muted-foreground">
-          Last updated: March 2026
+          Last updated: September 2026
         </p>
 
         <div className="mt-12 space-y-8 text-sm leading-relaxed text-muted-foreground">
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
               1. Introduction
             </h2>
             <p>
-              Household Talent is committed to protecting your privacy and
+              HouseHoldTalent (&quot;HHT&quot;) is committed to protecting your privacy and
               handling your personal data with discretion and care.
             </p>
             <p className="mt-2">
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
               information when using our platform.
             </p>
             <p className="mt-2">
-              Household Talent is operated by Norry Holdings Limited (Gibraltar).
+              HouseHoldTalent is operated by Norry Holdings Limited (Gibraltar).
             </p>
           </section>
 
@@ -41,17 +41,23 @@ export default function PrivacyPage() {
             </h2>
             <p>
               We collect personal data necessary to provide access to the
-              platform and facilitate recruitment. This may include:
+              platform and facilitate introductions. This may include:
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Personal details (name, contact information)</li>
               <li>Profile information (experience, skills, preferences)</li>
               <li>CVs and supporting documents</li>
+              <li>Police-check documents, where you choose to provide them</li>
               <li>Platform usage data</li>
             </ul>
             <p className="mt-2">
               We only collect information that is relevant to the operation of
               the service.
+            </p>
+            <p className="mt-2">
+              Where a police-check document is provided, it is reviewed by our
+              team and then deleted. We record only the outcome and the date of
+              the review.
             </p>
           </section>
 
@@ -62,7 +68,7 @@ export default function PrivacyPage() {
             <p>We use your data to:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>Provide and manage your account</li>
-              <li>Enable connections between candidates and employers</li>
+              <li>Facilitate introductions between candidates and employers</li>
               <li>Improve the platform and user experience</li>
               <li>
                 Communicate with you regarding your account or enquiries
@@ -99,8 +105,9 @@ export default function PrivacyPage() {
             <p>Your data may be shared in the following ways:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                Candidate profiles may be visible to registered employers using
-                the platform
+                Anonymised candidate profile summaries may be shown to registered
+                employers. Identifying details are released only with the
+                candidate&apos;s consent, through an HHT-facilitated introduction
               </li>
               <li>
                 Information may be shared with trusted service providers (e.g.

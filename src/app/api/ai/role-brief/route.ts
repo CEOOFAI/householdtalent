@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
   // Cap AI usage per employer per day so a logged-in user cannot run up the
   // Anthropic bill by spamming role-brief generations.
-  const allowed = await checkAIRateLimit(user.id);
+  const allowed = await checkAIRateLimit(user.id, 'role-brief');
   if (!allowed) {
     return NextResponse.json(
       { error: 'Daily generation limit reached. Try again tomorrow.' },

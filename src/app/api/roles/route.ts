@@ -78,8 +78,8 @@ export async function POST(req: NextRequest) {
       plan: body.plan || null,
       plan_price: body.plan_price ? parseInt(body.plan_price) : null,
       generated_brief: body.generated_brief || null,
-      brief_generated_at: body.brief_generated_at || null,
-      status: body.status || 'draft',
+      // Employers can only save drafts or submit for HHT review; going live is an admin action.
+      status: body.status === 'draft' ? 'draft' : 'pending_review',
       listing_tier: 'standard',
     })
     .select()

@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { candidatesForIntroductions } from '@/lib/candidates/employer-view'
+import { ConsentActions } from '@/app/dashboard/candidate/introductions/consent-actions'
 import { Card, CardContent } from '@/components/ui/card'
 import { Handshake, Clock, CheckCircle, XCircle, Inbox } from 'lucide-react'
 
@@ -8,13 +10,15 @@ interface EmployerIntroRow {
   message: string | null
   status: 'pending' | 'approved' | 'introduced' | 'declined'
   candidate_consent: 'pending' | 'accepted' | 'declined' | null
+  initiated_by: 'employer' | 'candidate'
+  employer_consent: 'pending' | 'accepted' | 'declined' | null
   admin_approved_at: string | null
   candidate_consent_at: string | null
   introduced_at: string | null
   created_at: string
   roles: { title: string } | null
   candidate_profiles: {
-    user_id: string
+    initials: string
     headline: string | null
     salutation: string | null
     location: string | null
@@ -38,6 +42,14 @@ function StatusBadge({ row }: { row: EmployerIntroRow }) {
       <span className="inline-flex items-center gap-1 rounded-full bg-[#9B7B3C]/10 px-2 py-0.5 text-xs font-medium text-[#9B7B3C]">
         <Clock className="h-3 w-3" />
         With our team
+      </span>
+    )
+  }
+  if (row.status === 'approved' && row.initiated_by === 'candidate' && row.employer_consent === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-[#9B7B3C]/15 px-2 py-0.5 text-xs font-medium text-[#9B7B3C]">
+        <Clock className="h-3 w-3" />
+        Your confirmation needed
       </span>
     )
   }
@@ -97,28 +109,50 @@ export default async function EmployerIntroductionsPage() {
     .from('contact_requests')
     .select(`
       id,
+      candidate_id,
       message,
       status,
       candidate_consent,
+      initiated_by,
+      employer_consent,
       admin_approved_at,
       candidate_consent_at,
       introduced_at,
       created_at,
-      roles ( title ),
-      candidate_profiles!contact_requests_candidate_id_fkey (
-        user_id,
-        headline,
-        salutation,
-        location,
-        languages,
-        experience_years,
-        profiles!candidate_profiles_user_id_fkey ( first_name, last_name, email, phone )
-      )
+      roles ( title )
     `)
     .eq('employer_id', employerProfile.id)
     .order('created_at', { ascending: false })
 
-  const rows = (requests || []) as unknown as EmployerIntroRow[]
+  // Candidate details come from the server-side helper: anonymised until the
+  // introduction is complete, then name/email/phone are released.
+  const requestRows = (requests || []) as unknown as (Omit<EmployerIntroRow, 'candidate_profiles'> & { candidate_id: string | null })[]
+  const candidates = await candidatesForIntroductions(requestRows)
+  const rows: EmployerIntroRow[] = requestRows.map((r) => {
+    const c = r.candidate_id ? candidates.get(r.candidate_id) : undefined
+    const nameParts = (c?.contact?.full_name || '').split(' ')
+    return {
+      ...r,
+      candidate_profiles: c
+        ? {
+            initials: c.initials,
+            headline: c.headline,
+            salutation: c.salutation,
+            location: c.location,
+            languages: c.languages,
+            experience_years: c.experience_years,
+            profiles: c.contact
+              ? {
+                  first_name: nameParts[0] || null,
+                  last_name: nameParts.slice(1).join(' ') || null,
+                  email: c.contact.email,
+                  phone: c.contact.phone,
+                }
+              : null,
+          }
+        : null,
+    }
+  })
 
   // Pre-introduction: candidate identity is hidden. Only revealed once status === 'introduced'.
   function candidateLabel(row: EmployerIntroRow): string {
@@ -128,9 +162,7 @@ export default async function EmployerIntroductionsPage() {
       return `${profile.first_name} ${profile.last_name || ''}`.trim()
     }
     const salutation = cp?.salutation || 'Mx'
-    const initial = profile?.last_name?.[0]?.toUpperCase()
-      || profile?.first_name?.[0]?.toUpperCase()
-      || ''
+    const initial = cp?.initials?.slice(-1) || ''
     if (initial) return `${salutation}. ${initial}.`
     if (cp?.headline) return cp.headline
     return 'Candidate'
@@ -183,6 +215,16 @@ export default async function EmployerIntroductionsPage() {
                     </p>
                   </div>
                 </div>
+
+                {row.status === 'approved' && row.initiated_by === 'candidate' && row.employer_consent === 'pending' && (
+                  <div className="mt-3 space-y-3 rounded-md border border-[#9B7B3C]/30 bg-[#9B7B3C]/5 p-4">
+                    <p className="text-sm text-white">
+                      This HHT Approved candidate has expressed interest in your role. Would you like HHT to
+                      introduce you?
+                    </p>
+                    <ConsentActions requestId={row.id} />
+                  </div>
+                )}
 
                 {row.status === 'introduced' && (
                   <div className="mt-3 rounded-md border border-green-500/20 bg-green-500/5 p-4 text-sm">
@@ -246,8 +288,8 @@ export default async function EmployerIntroductionsPage() {
 
       <p className="flex items-center gap-2 text-xs text-neutral-500">
         <Handshake className="h-3.5 w-3.5" />
-        Every introduction is reviewed by our team and confirmed by the
-        candidate before details are shared.
+        Every introduction is reviewed by HHT and confirmed by both sides
+        before any details are shared.
       </p>
     </div>
   )

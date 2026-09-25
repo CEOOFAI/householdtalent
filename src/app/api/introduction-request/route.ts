@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
 
   let employer_id: string;
   let actual_candidate_id: string;
+  let initiated_by: 'employer' | 'candidate' = 'employer';
 
   if (employerProfile) {
     // Employer requesting introduction to candidate
@@ -46,6 +47,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // The role must belong to this employer and be live (or awaiting review).
+    if (!role_id) {
+      return NextResponse.json({ error: 'Please choose which role this introduction is for.' }, { status: 400 });
+    }
+    const { data: ownRole } = await admin
+      .from('roles')
+      .select('id, employer_id, status')
+      .eq('id', role_id)
+      .maybeSingle();
+    if (!ownRole || ownRole.employer_id !== employer_id || !['active', 'pending_review'].includes(ownRole.status)) {
+      return NextResponse.json({ error: 'That role is not available for introductions.' }, { status: 400 });
+    }
+
     // Check per-role introduction limit for Standard tier
     if (employerProfile.tier === 'basic') {
       const { count } = await supabase
@@ -64,13 +78,26 @@ export async function POST(req: NextRequest) {
   } else if (candidateProfile) {
     // Candidate expressing interest in a role
     actual_candidate_id = candidateProfile.id;
-    // Get employer_id from the role
-    const { data: role } = await supabase
-      .from('roles')
-      .select('employer_id')
-      .eq('id', role_id)
+    initiated_by = 'candidate';
+    // Only approved (active) candidates can express interest, and only in live roles.
+    const { data: me } = await admin
+      .from('candidate_profiles')
+      .select('status')
+      .eq('id', candidateProfile.id)
       .single();
-    if (!role) return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+    if (me?.status !== 'active') {
+      return NextResponse.json(
+        { error: 'Your profile needs to be approved by HHT before you can request introductions.' },
+        { status: 403 },
+      );
+    }
+    if (!role_id) return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+    const { data: role } = await admin
+      .from('roles')
+      .select('employer_id, status')
+      .eq('id', role_id)
+      .maybeSingle();
+    if (!role || role.status !== 'active') return NextResponse.json({ error: 'Role not found' }, { status: 404 });
     employer_id = role.employer_id;
   } else {
     return NextResponse.json({ error: 'Profile not found' }, { status: 403 });
@@ -85,6 +112,12 @@ export async function POST(req: NextRequest) {
       role_id,
       message: message || null,
       status: 'pending',
+      initiated_by,
+      // A candidate expressing interest has already consented on their side;
+      // the employer is asked to confirm once HHT approves.
+      ...(initiated_by === 'candidate'
+        ? { candidate_consent: 'accepted', candidate_consent_at: new Date().toISOString() }
+        : {}),
     })
     .select()
     .single();
@@ -93,7 +126,8 @@ export async function POST(req: NextRequest) {
     if (error.code === '23505') {
       return NextResponse.json({ error: 'Introduction already requested' }, { status: 409 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('introduction insert failed', error.code);
+    return NextResponse.json({ error: 'Could not send the request. Please try again.' }, { status: 500 });
   }
 
   // Notify admins (best-effort; ignore if notifications table doesn't exist or RLS blocks)

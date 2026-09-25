@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
-import { Eye, Handshake, Star, User, FileText, Briefcase, ArrowUpRight, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Eye, Handshake, Star, User, FileText, Briefcase, Clock, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import type { ContactRequestStatus } from "@/types";
 import VerificationCard from "./verification-card";
@@ -78,7 +78,7 @@ export default async function CandidateDashboard() {
     { label: "Profile Completion", value: `${completion}%`, icon: User, color: completion === 100 ? "text-green-500" : "text-[#9B7B3C]" },
     { label: "Profile Views", value: viewsCount ?? 0, icon: Eye, color: "text-blue-400" },
     { label: "Introduction Requests", value: requestsCount ?? 0, icon: Handshake, color: "text-[#9B7B3C]" },
-    { label: "Current Tier", value: profile.tier.charAt(0).toUpperCase() + profile.tier.slice(1), icon: Star, color: "text-[#9B7B3C]" },
+    { label: "Profile Status", value: profile.status === "active" ? "HHT Approved" : profile.status === "pending_review" ? "Under review" : profile.status === "waitlisted" ? "Waitlisted" : profile.status === "draft" ? "Draft" : "Inactive", icon: Star, color: "text-[#9B7B3C]" },
   ];
 
   return (
@@ -88,33 +88,19 @@ export default async function CandidateDashboard() {
         <p className="mt-1 text-muted-foreground">Welcome back. Here&apos;s your profile overview.</p>
       </div>
 
-      {/* Tier upgrade banner */}
-      {profile.tier === 'free' && (
-        <Card className="border-[#9B7B3C]/30 bg-[#9B7B3C]/5">
+      {/* Optional CV services: only offered once a candidate is HHT Approved,
+          and kept separate from admission. */}
+      {profile.status === 'active' && (
+        <Card className="animate-fade-up border-[#9B7B3C]/30 bg-[#9B7B3C]/5">
           <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div>
-              <h2 className="font-medium text-white">Improve your visibility</h2>
+              <h2 className="font-medium text-white">Optional CV services</h2>
               <p className="mt-1 text-sm text-neutral-400">
-                Upgrade to Premium for a gold-highlighted profile, increased visibility, and a professionally structured CV.
+                Have your CV professionally restructured and presented by HHT, from £35.
               </p>
             </div>
             <Link href="/dashboard/candidate/subscription" className="shrink-0 self-start rounded-lg bg-[#9B7B3C] px-4 py-2 text-sm font-medium text-black hover:bg-[#7B6535] sm:self-center">
-              <ArrowUpRight className="mr-1 inline h-4 w-4" />Upgrade
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* CV Builder CTA for Premium tier */}
-      {profile.tier === 'premium' && !profile.generated_cv && (
-        <Card className="border-[#9B7B3C]/30 bg-[#9B7B3C]/5">
-          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div>
-              <h2 className="font-medium text-white">Build Your Professional CV</h2>
-              <p className="mt-1 text-sm text-neutral-400">Use our CV Builder to create a polished, professional CV that gets noticed.</p>
-            </div>
-            <Link href="/dashboard/candidate/cv-builder" className="shrink-0 self-start rounded-lg bg-[#9B7B3C] px-4 py-2 text-sm font-medium text-black hover:bg-[#7B6535] sm:self-center">
-              <FileText className="mr-1 inline h-4 w-4" />Build CV
+              <FileText className="mr-1 inline h-4 w-4" />View CV services
             </Link>
           </CardContent>
         </Card>

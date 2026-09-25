@@ -89,7 +89,7 @@ export default function EmployerRegisterPage() {
       <div>
         <h1 className="font-heading text-2xl font-bold text-white">Register as an Employer</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Find exceptional domestic staff for your household
+          Browse the HHT Approved network and request introductions
         </p>
       </div>
 
@@ -182,7 +182,7 @@ export default function EmployerRegisterPage() {
         </div>
 
         <p className="text-xs text-neutral-600">
-          Access to candidates is provided on a subscription basis. We do not guarantee placements.
+          Employer plans are one-off, prepaid 30-day access packages. Introductions are facilitated by HHT; we do not guarantee outcomes.
         </p>
 
         <button

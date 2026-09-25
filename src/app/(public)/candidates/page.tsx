@@ -1,26 +1,16 @@
 import Link from 'next/link'
-import { Lock, Quote, ShieldCheck } from 'lucide-react'
+import type { Metadata } from 'next'
+import { Lock, ShieldCheck } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { CandidateCard } from './candidate-card'
 import type { PublicCandidate } from './types'
 
 export const revalidate = 60
 
-// Extract storage path from a Supabase public URL like
-// https://<ref>.supabase.co/storage/v1/object/public/candidate-photos/<path>
-function extractCandidatePhotoPath(raw: string): string | null {
-  const m = raw.match(/\/storage\/v1\/object\/(?:public|sign)\/candidate-photos\/([^?]+)/)
-  return m ? m[1] : null
-}
-
-async function resolvePhoto(raw: string | null | undefined, admin: ReturnType<typeof createAdminClient>): Promise<string | null> {
-  if (!raw) return null
-  if (raw.startsWith('https://image.pollinations.ai/')) return raw
-  const path = extractCandidatePhotoPath(raw)
-  if (!path) return raw // unknown host, leave as-is
-  const { data } = await admin.storage.from('candidate-photos').createSignedUrl(path, 600)
-  return data?.signedUrl ?? null
+export const metadata: Metadata = {
+  title: 'HHT Approved Candidates',
+  description:
+    'A small selection of HHT Approved household professionals, shared with consent. Full profiles are shared privately with registered employers through HHT-facilitated introductions.',
 }
 
 async function getActiveCandidates(): Promise<PublicCandidate[]> {
@@ -31,38 +21,37 @@ async function getActiveCandidates(): Promise<PublicCandidate[]> {
   const sb = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
   const { data, error } = await sb
     .from('candidate_profiles')
-    .select('id, slug, salutation, full_name, headline, bio, roles, skills, languages, location, experience_years, photos, availability, public_listing_consent, status')
+    .select('id, slug, salutation, full_name, headline, bio, roles, skills, languages, location, experience_years, availability')
     .eq('status', 'active')
     .eq('public_listing_consent', true)
     .order('updated_at', { ascending: false })
     .limit(24)
 
-  if (error) {
-    console.error('candidates fetch failed:', error.message)
-    return []
-  }
+  // Throw rather than return [] so a database outage doesn't get cached as an
+  // empty page; Vercel keeps serving the last good version instead.
+  if (error) throw new Error(`candidates fetch failed: ${error.message}`)
 
-  const admin = createAdminClient()
-
-  return await Promise.all((data ?? []).map(async row => {
+  return (data ?? []).map(row => {
     const lastInitial = (row.full_name ?? '').split(' ').slice(-1)[0]?.charAt(0) ?? '?'
     const displayName = `${row.salutation ?? 'Mr.'} ${lastInitial}.`
-    const rawPhoto = (row.photos ?? [])[0] ?? null
-    const photo = await resolvePhoto(rawPhoto, admin)
+    // Photos are never shown publicly: a CSS blur can be removed by anyone who
+    // views the page source, so the original image would leak. Cards use the
+    // initials placeholder instead.
+    const photo: string | null = null
     return {
       id: row.id,
       slug: row.slug,
       displayName,
       headline: row.headline ?? row.roles?.[0] ?? 'Household Professional',
-      location: row.location ?? 'Available across Spain & UK',
-      bio: row.bio ?? '',
+      location: row.location ?? 'Location on request',
+      bio: truncate(row.bio ?? '', 180),
       skills: (row.skills ?? []).slice(0, 3),
       experienceYears: row.experience_years ?? 0,
       languages: row.languages ?? [],
       photo,
       availability: humaniseAvailability(row.availability),
     }
-  }))
+  })
 }
 
 function humaniseAvailability(value: string | null | undefined): string {
@@ -83,13 +72,13 @@ export default async function CandidatesPage() {
         {/* Header */}
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="font-heading text-3xl font-bold text-white sm:text-5xl">
-            A selection of recent candidates
+            HHT Approved Candidates
           </h1>
           <p className="mt-4 text-lg text-neutral-400">
-            A small sample of the high-quality individuals available through Household Talent.
+            A small selection of HHT Approved profiles, shared with consent.
           </p>
           <p className="mt-2 text-sm text-[#9B7B3C]">
-            Full access is provided once a role is submitted.
+            HHT Approved means every profile is individually reviewed by our team before admission.
           </p>
         </div>
 
@@ -98,10 +87,10 @@ export default async function CandidatesPage() {
           <div className="mt-16 rounded-xl border border-neutral-800 bg-neutral-900/40 p-10 text-center">
             <Lock className="mx-auto mb-4 h-8 w-8 text-[#9B7B3C]/50" />
             <p className="text-neutral-400">
-              Our active candidate roster is updated weekly.
+              Profiles are shared privately with registered employers.
             </p>
             <p className="mt-2 text-sm text-neutral-500">
-              Submit a role to see introductions matched to your requirements.
+              Submit a role brief to browse the HHT Approved network and request introductions.
             </p>
           </div>
         ) : (
@@ -112,15 +101,6 @@ export default async function CandidatesPage() {
           </div>
         )}
 
-        {/* Social Proof Strip */}
-        <div className="mx-auto mt-20 max-w-2xl text-center">
-          <Quote className="mx-auto mb-4 h-8 w-8 text-[#9B7B3C]/30" />
-          <p className="font-heading text-lg italic text-neutral-300">
-            &ldquo;The calibre of candidates was noticeably higher than traditional platforms.&rdquo;
-          </p>
-          <p className="mt-3 text-sm text-neutral-500">Private Client</p>
-        </div>
-
         {/* Control Message */}
         <div className="mx-auto mt-16 max-w-xl rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:p-8 text-center">
           <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-[#9B7B3C]/10">
@@ -130,7 +110,7 @@ export default async function CandidatesPage() {
             Why you don&apos;t see everything
           </h3>
           <p className="mt-3 text-sm leading-relaxed text-neutral-400">
-            We prioritise quality over volume. Only relevant candidates are introduced based on your specific requirements.
+            We prioritise discretion and quality over volume. Profiles are anonymised, and identifying details are released only with the candidate&apos;s consent through an HHT-facilitated introduction.
           </p>
         </div>
 
@@ -157,4 +137,9 @@ export default async function CandidatesPage() {
       </div>
     </div>
   )
+}
+
+function truncate(text: string, max: number): string {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  return clean.length > max ? `${clean.slice(0, max).replace(/\s+\S*$/, '')}…` : clean
 }

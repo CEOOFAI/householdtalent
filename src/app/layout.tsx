@@ -3,6 +3,8 @@ import { Inter, Cormorant_Garamond } from "next/font/google";
 import { Toaster } from "sonner";
 import { CookieBanner } from "@/components/cookie-banner";
 import "./globals.css";
+import { jsonLd } from '@/lib/utils'
+import { SITE_URL } from '@/lib/site'
 
 const inter = Inter({
   subsets: ["latin"],
@@ -15,11 +17,10 @@ const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
 });
 
-const SITE_URL = "https://householdtalent.vercel.app";
 const SITE_NAME = "HouseHoldTalent";
 const SITE_TAGLINE = "Exceptional Staff. Exemplary Homes.";
 const SITE_DESCRIPTION =
-  "The private network for placing exceptional domestic staff with discerning households across Gibraltar, the Costa del Sol and internationally. Vetted nannies, housekeepers, private chefs, butlers, estate managers and more.";
+  "A private introduction network connecting discerning households with exceptional domestic staff across Gibraltar, the Costa del Sol and internationally. HHT Approved nannies, housekeepers, private chefs, butlers, estate managers and more.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -44,7 +45,7 @@ export const metadata: Metadata = {
     "butler private household",
     "private household staff",
     "luxury domestic staffing",
-    "household staffing agency",
+    "household staff introductions",
     "personal assistant household",
     "uhnw household staff",
   ],
@@ -53,7 +54,6 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     type: "website",
     siteName: SITE_NAME,
-    url: SITE_URL,
     locale: "en_GB",
     alternateLocale: ["en_US", "es_ES"],
   },
@@ -72,9 +72,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  alternates: {
-    canonical: SITE_URL,
-  },
   formatDetection: {
     email: false,
     telephone: false,
@@ -86,7 +83,7 @@ const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: SITE_NAME,
-  alternateName: "HouseHold Talent",
+  alternateName: "HHT",
   url: SITE_URL,
   logo: `${SITE_URL}/logo.png`,
   description: SITE_DESCRIPTION,
@@ -97,12 +94,12 @@ const organizationJsonLd = {
   ],
   knowsAbout: [
     "Private household staffing",
-    "Domestic staff recruitment",
-    "Nanny placement",
-    "Private chef placement",
+    "Private household staff introductions",
+    "Nanny introductions",
+    "Private chef introductions",
     "Estate management staffing",
-    "Butler placement",
-    "Personal assistant placement",
+    "Butler introductions",
+    "Personal assistant introductions",
   ],
   contactPoint: {
     "@type": "ContactPoint",
@@ -123,7 +120,7 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLd(organizationJsonLd) }}
         />
       </head>
       <body

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent } from '@/components/ui/card'
 import { Handshake, Clock, CheckCircle, XCircle } from 'lucide-react'
 import { IntroductionActions } from './introduction-actions'
@@ -14,7 +14,9 @@ interface IntroductionRequest {
   candidate_consent: 'pending' | 'accepted' | 'declined' | null
   admin_approved_at: string | null
   candidate_consent_at: string | null
-  declined_by: 'admin' | 'candidate' | null
+  declined_by: 'admin' | 'candidate' | 'employer' | null
+  initiated_by: 'employer' | 'candidate'
+  employer_consent: 'pending' | 'accepted' | 'declined' | null
   admin_notes: string | null
   introduced_at: string | null
   created_at: string
@@ -40,7 +42,9 @@ interface IntroductionRequest {
 function getStatusBadge(
   status: ContactRequestStatus,
   candidateConsent: 'pending' | 'accepted' | 'declined' | null,
-  declinedBy: 'admin' | 'candidate' | null,
+  declinedBy: 'admin' | 'candidate' | 'employer' | null,
+  initiatedBy: 'employer' | 'candidate' = 'employer',
+  employerConsent: 'pending' | 'accepted' | 'declined' | null = null,
 ) {
   switch (status) {
     case 'pending':
@@ -51,11 +55,11 @@ function getStatusBadge(
         </span>
       )
     case 'approved':
-      if (candidateConsent === 'pending') {
+      if (initiatedBy === 'candidate' ? employerConsent === 'pending' : candidateConsent === 'pending') {
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-400">
             <Clock className="h-3 w-3" />
-            Awaiting candidate
+            Awaiting {initiatedBy === 'candidate' ? 'employer' : 'candidate'}
           </span>
         )
       }
@@ -75,7 +79,7 @@ function getStatusBadge(
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-400">
           <XCircle className="h-3 w-3" />
-          Declined{declinedBy === 'candidate' ? ' (candidate)' : ''}
+          Declined{declinedBy && declinedBy !== 'admin' ? ` (${declinedBy})` : ''}
         </span>
       )
     default:
@@ -97,8 +101,13 @@ function formatDate(dateStr: string) {
   })
 }
 
+// Always render on request: live data, admin-only.
+export const dynamic = 'force-dynamic'
+
 export default async function AdminIntroductionsPage() {
-  const supabase = await createClient()
+  // Admin-only page (gated by middleware + admin layout). admin_notes is hidden
+  // from signed-in users by column privileges, so read with the service role.
+  const supabase = createAdminClient()
 
   const { data: requests, error } = await supabase
     .from('contact_requests')
@@ -113,6 +122,8 @@ export default async function AdminIntroductionsPage() {
       admin_approved_at,
       candidate_consent_at,
       declined_by,
+      initiated_by,
+      employer_consent,
       admin_notes,
       introduced_at,
       created_at,
@@ -144,15 +155,16 @@ export default async function AdminIntroductionsPage() {
 
   // Group: awaiting admin review first, then awaiting candidate, then introduced, then declined
   const pending = allRequests.filter((r) => r.status === 'pending')
-  const awaitingCandidate = allRequests.filter(
-    (r) => r.status === 'approved' && r.candidate_consent === 'pending',
-  )
+  const isAwaitingConsent = (r: IntroductionRequest) =>
+    r.status === 'approved' &&
+    (r.initiated_by === 'candidate' ? r.employer_consent === 'pending' : r.candidate_consent === 'pending')
+  const awaitingCandidate = allRequests.filter(isAwaitingConsent)
   const introduced = allRequests.filter((r) => r.status === 'introduced')
   const declined = allRequests.filter((r) => r.status === 'declined')
   const other = allRequests.filter(
     (r) =>
       !['pending', 'introduced', 'declined'].includes(r.status) &&
-      !(r.status === 'approved' && r.candidate_consent === 'pending'),
+      !isAwaitingConsent(r),
   )
   const grouped = [
     ...pending,
@@ -192,7 +204,7 @@ export default async function AdminIntroductionsPage() {
               <p className="text-2xl font-bold text-white">
                 {awaitingCandidate.length}
               </p>
-              <p className="text-xs text-neutral-400">Awaiting Candidate</p>
+              <p className="text-xs text-neutral-400">Awaiting Confirmation</p>
             </div>
           </CardContent>
         </Card>
@@ -260,7 +272,12 @@ export default async function AdminIntroductionsPage() {
                           request.status,
                           request.candidate_consent,
                           request.declined_by,
+                          request.initiated_by,
+                          request.employer_consent,
                         )}
+                        <span className="text-xs text-neutral-500">
+                          {request.initiated_by === 'candidate' ? 'Candidate interest' : 'Employer request'}
+                        </span>
                         <span className="text-xs text-neutral-500">
                           {formatDate(request.created_at)}
                         </span>
@@ -309,6 +326,8 @@ export default async function AdminIntroductionsPage() {
                         requestId={request.id}
                         status={request.status}
                         candidateConsent={request.candidate_consent}
+                        initiatedBy={request.initiated_by}
+                        employerConsent={request.employer_consent}
                         employerUserId={
                           request.employer_profiles?.user_id || ''
                         }

@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Complete tier required for CV Builder' }, { status: 403 });
   }
 
-  const allowed = await checkAIRateLimit(user.id);
+  const allowed = await checkAIRateLimit(user.id, 'cv-builder');
   if (!allowed) {
     return NextResponse.json({ error: 'Daily generation limit reached. Try again tomorrow.' }, { status: 429 });
   }

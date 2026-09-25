@@ -1,16 +1,16 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent } from '@/components/ui/card'
 import { IntroductionRequestModal } from '@/components/introduction-request-modal'
+import { CardSkeleton } from '@/components/motion/card-skeleton'
 import { ROLE_CATEGORIES, LOCATIONS, AVAILABILITY_LABELS } from '@/lib/constants'
-import { Search, MapPin, Filter, Star, FileText, Loader2, UserPlus, ShieldCheck, Award } from 'lucide-react'
+import { Search, MapPin, Filter, Star, FileText, Loader2, UserPlus, ShieldCheck, Heart } from 'lucide-react'
 import type { CandidatePlanKey } from '@/lib/stripe/config'
 
 interface CandidateResult {
   id: string
-  user_id: string
+  initials: string
   headline: string | null
   salutation: string | null
   location: string | null
@@ -20,19 +20,11 @@ interface CandidateResult {
   tier: CandidatePlanKey
   reference_status: 'pending' | 'in_progress' | 'verified' | null
   gold_verified: boolean | null
-  profiles: {
-    first_name: string | null
-    last_name: string | null
-  } | null
 }
 
 const TIER_ORDER: Record<CandidatePlanKey, number> = {
   premium: 0,
   free: 1,
-}
-
-function getInitials(first: string, last: string) {
-  return `${first.charAt(0)}${last.charAt(0)}`.toUpperCase()
 }
 
 function getLocationLabel(value: string | null) {
@@ -44,6 +36,8 @@ function getLocationLabel(value: string | null) {
 export default function EmployerSearchPage() {
   const [candidates, setCandidates] = useState<CandidateResult[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState('')
   const [locationFilter, setLocationFilter] = useState('')
@@ -59,51 +53,62 @@ export default function EmployerSearchPage() {
   useEffect(() => {
     async function fetchCandidates() {
       setLoading(true)
-      const supabase = createClient()
-
-      const { data, error } = await supabase
-        .from('candidate_profiles')
-        .select(`
-          id,
-          user_id,
-          headline,
-          salutation,
-          location,
-          roles,
-          experience_years,
-          availability,
-          tier,
-          reference_status,
-          gold_verified,
-          profiles!candidate_profiles_user_id_fkey (
-            first_name,
-            last_name
-          )
-        `)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('Error fetching candidates:', error)
+      setLoadError(null)
+      try {
+        const res = await fetch('/api/employer/candidates', { cache: 'no-store' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const body = (await res.json()) as { candidates: CandidateResult[] }
+        setCandidates(body.candidates ?? [])
+      } catch (err) {
+        console.error('Error fetching candidates:', err)
+        setLoadError('We could not load the candidate network right now. Please refresh or try again shortly.')
+      } finally {
+        setLoading(false)
       }
-
-      setCandidates((data as unknown as CandidateResult[]) || [])
-      setLoading(false)
     }
 
     fetchCandidates()
+    fetch('/api/employer/saved', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { ids: [] }))
+      .then((b: { ids: string[] }) => setSavedIds(new Set(b.ids)))
+      .catch(() => {})
   }, [])
+
+  async function toggleSaved(candidateId: string) {
+    const isSaved = savedIds.has(candidateId)
+    // Optimistic update
+    setSavedIds((prev) => {
+      const next = new Set(prev)
+      if (isSaved) next.delete(candidateId)
+      else next.add(candidateId)
+      return next
+    })
+    const res = await fetch(
+      isSaved ? `/api/employer/saved?candidate_id=${candidateId}` : '/api/employer/saved',
+      isSaved
+        ? { method: 'DELETE' }
+        : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ candidate_id: candidateId }) },
+    ).catch(() => null)
+    if (!res || !res.ok) {
+      // Roll back on failure
+      setSavedIds((prev) => {
+        const next = new Set(prev)
+        if (isSaved) next.add(candidateId)
+        else next.delete(candidateId)
+        return next
+      })
+    }
+  }
 
   const filtered = useMemo(() => {
     let results = [...candidates]
 
-    // Search by headline or name
+    // Search by headline or role
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       results = results.filter((c) => {
-        const name = `${c.profiles?.first_name} ${c.profiles?.last_name}`.toLowerCase()
         const headline = (c.headline || '').toLowerCase()
-        return name.includes(q) || headline.includes(q)
+        return headline.includes(q) || c.roles?.some((r) => r.toLowerCase().includes(q))
       })
     }
 
@@ -125,15 +130,15 @@ export default function EmployerSearchPage() {
     }
 
     // Sort by tier: complete first, then recommended, then free
-    results.sort((a, b) => TIER_ORDER[a.tier] - TIER_ORDER[b.tier])
+    results.sort((a, b) => (TIER_ORDER[a.tier] ?? 1) - (TIER_ORDER[b.tier] ?? 1))
 
     return results
   }, [candidates, searchQuery, roleFilter, locationFilter, availabilityFilter])
 
-  function openIntroModal(candidateId: string, firstName: string, lastName: string) {
+  function openIntroModal(candidateId: string, label: string) {
     setSelectedCandidate({
       id: candidateId,
-      name: `${firstName} ${lastName}`,
+      name: label,
     })
     setModalOpen(true)
   }
@@ -145,7 +150,7 @@ export default function EmployerSearchPage() {
           Search Candidates
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Browse our curated directory of vetted domestic professionals.
+          Browse HHT Approved household professionals. Every profile is individually reviewed before admission.
         </p>
       </div>
 
@@ -158,7 +163,7 @@ export default function EmployerSearchPage() {
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search by name or headline..."
+                placeholder="Search by role or headline..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-md border border-neutral-700 bg-neutral-800/50 py-2 pl-10 pr-4 text-sm text-white placeholder:text-neutral-500 outline-none transition-colors focus:border-[#9B7B3C] focus:ring-1 focus:ring-[#9B7B3C]/50"
@@ -218,9 +223,10 @@ export default function EmployerSearchPage() {
 
       {/* Results */}
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="h-6 w-6 animate-spin text-[#9B7B3C]" />
-          <span className="ml-3 text-sm text-neutral-400">Loading candidates...</span>
+        <CardSkeleton count={6} className="sm:grid-cols-2 lg:grid-cols-3" />
+      ) : loadError ? (
+        <div className="flex flex-col items-center py-16 text-center">
+          <p className="text-sm text-red-300">{loadError}</p>
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center py-16 text-center">
@@ -238,22 +244,19 @@ export default function EmployerSearchPage() {
             {filtered.map((candidate) => {
               // Anonymise on the public/employer browse: salutation + last initial only.
               // Real name only revealed once both sides have agreed to an introduction.
-              const firstInitial = candidate.profiles?.first_name?.[0]?.toUpperCase() || ''
-              const lastInitial = candidate.profiles?.last_name?.[0]?.toUpperCase() || ''
-              const initials = (firstInitial + lastInitial) || 'C'
+              const initials = candidate.initials || 'C'
+              const lastInitial = candidate.initials.slice(-1)
               const salutation = candidate.salutation || 'Mx'
               const anonName = lastInitial
                 ? `${salutation}. ${lastInitial}.`
                 : candidate.headline || 'Candidate'
-              const firstName = candidate.profiles?.first_name || 'C'
-              const lastName = candidate.profiles?.last_name || ''
               const isPremium = candidate.tier === 'premium'
               const isFree = candidate.tier === 'free'
 
               return (
                 <Card
                   key={candidate.id}
-                  className={`border-border bg-card transition-all ${
+                  className={`card-lift animate-fade-up border-border bg-card transition-all ${
                     isPremium
                       ? 'border-[#9B7B3C]/40 shadow-[0_0_20px_rgba(212,160,18,0.1)]'
                       : 'opacity-75'
@@ -269,15 +272,10 @@ export default function EmployerSearchPage() {
                             Premium
                           </span>
                         )}
-                        {candidate.gold_verified ? (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-[#9B7B3C] bg-[#9B7B3C]/10 px-2 py-0.5 text-xs font-semibold text-[#9B7B3C]">
-                            <Award className="h-3 w-3" />
-                            HHT Gold Verified
-                          </span>
-                        ) : candidate.reference_status === 'verified' && (
+                        {(candidate.gold_verified || candidate.reference_status === 'verified') && (
                           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-xs font-semibold text-emerald-300">
                             <ShieldCheck className="h-3 w-3" />
-                            References Verified by HHT
+                            References Checked
                           </span>
                         )}
                       </div>
@@ -338,14 +336,29 @@ export default function EmployerSearchPage() {
                       </div>
                     </div>
 
-                    {/* Request Introduction button */}
+                    {/* Request Introduction + Save */}
+                    <div className="mt-4 flex gap-2">
                     <button
-                      onClick={() => openIntroModal(candidate.id, anonName, '')}
-                      className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-[#9B7B3C] px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-[#9B7B3C]/90"
+                      type="button"
+                      onClick={() => toggleSaved(candidate.id)}
+                      aria-pressed={savedIds.has(candidate.id)}
+                      aria-label={savedIds.has(candidate.id) ? 'Remove from saved' : 'Save candidate'}
+                      className={`flex items-center justify-center rounded-lg border px-3 transition-all duration-200 active:scale-95 ${
+                        savedIds.has(candidate.id)
+                          ? 'border-[#9B7B3C] bg-[#9B7B3C]/15 text-[#9B7B3C]'
+                          : 'border-neutral-700 text-neutral-400 hover:border-[#9B7B3C]/60 hover:text-[#9B7B3C]'
+                      }`}
+                    >
+                      <Heart className={`h-4 w-4 transition-transform duration-200 ${savedIds.has(candidate.id) ? 'scale-110 fill-current' : ''}`} />
+                    </button>
+                    <button
+                      onClick={() => openIntroModal(candidate.id, anonName)}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#9B7B3C] px-4 py-2 text-sm font-medium text-black transition-colors hover:bg-[#9B7B3C]/90"
                     >
                       <UserPlus className="h-4 w-4" />
                       Request Introduction
                     </button>
+                    </div>
                   </CardContent>
                 </Card>
               )
