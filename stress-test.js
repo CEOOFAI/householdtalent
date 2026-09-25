@@ -1,7 +1,7 @@
 require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxmd2xlaXNoeXltYnh5bmxjYWlrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDM2NjM2MiwiZXhwIjoyMDg5OTQyMzYyfQ.XlEjL3BqUhHsVQlyNSzU0g3UcljIj-2QaAQ36RA1Vyw';
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const admin = createClient(url, serviceKey);
 
