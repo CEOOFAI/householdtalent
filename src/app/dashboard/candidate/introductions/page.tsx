@@ -9,6 +9,8 @@ interface CandidateIntroRow {
   message: string | null
   status: 'pending' | 'approved' | 'introduced' | 'declined'
   candidate_consent: 'pending' | 'accepted' | 'declined' | null
+  initiated_by: 'employer' | 'candidate'
+  employer_consent: 'pending' | 'accepted' | 'declined' | null
   admin_approved_at: string | null
   candidate_consent_at: string | null
   declined_by: 'admin' | 'candidate' | null
@@ -60,6 +62,8 @@ export default async function CandidateIntroductionsPage() {
       message,
       status,
       candidate_consent,
+      initiated_by,
+      employer_consent,
       admin_approved_at,
       candidate_consent_at,
       declined_by,
@@ -74,9 +78,12 @@ export default async function CandidateIntroductionsPage() {
 
   const rows = (requests || []) as unknown as CandidateIntroRow[]
 
-  const withAdmin = rows.filter((r) => r.status === 'pending')
+  // "In progress": with HHT, or (for roles you expressed interest in) with the employer
+  const withAdmin = rows.filter(
+    (r) => r.status === 'pending' || (r.status === 'approved' && r.initiated_by === 'candidate'),
+  )
   const awaiting = rows.filter(
-    (r) => r.status === 'approved' && r.candidate_consent === 'pending',
+    (r) => r.status === 'approved' && r.initiated_by !== 'candidate' && r.candidate_consent === 'pending',
   )
   const accepted = rows.filter((r) => r.status === 'introduced')
   const declined = rows.filter(
@@ -90,7 +97,7 @@ export default async function CandidateIntroductionsPage() {
           Introductions
         </h1>
         <p className="mt-1 text-muted-foreground">
-          Employers we have curated for you. You decide whether to be
+          Introductions in progress with HHT. You always decide whether to be
           introduced.
         </p>
       </div>
@@ -98,7 +105,7 @@ export default async function CandidateIntroductionsPage() {
       {withAdmin.length > 0 && (
         <section className="space-y-4">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-white/60">
-            With our team
+            In progress
           </h2>
           {withAdmin.map((r) => (
             <Card key={r.id} className="border-border bg-card">
@@ -106,7 +113,7 @@ export default async function CandidateIntroductionsPage() {
                 <div className="flex items-center gap-3">
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-xs font-medium text-white/70">
                     <Clock className="h-3 w-3" />
-                    Awaiting our review
+                    {r.status === 'approved' ? 'Awaiting employer' : 'Awaiting our review'}
                   </span>
                   <span className="text-xs text-neutral-500">
                     Submitted {formatDate(r.created_at)}
@@ -117,7 +124,9 @@ export default async function CandidateIntroductionsPage() {
                     {r.roles?.title || 'Role'}
                   </p>
                   <p className="text-xs text-neutral-400">
-                    Our team is reviewing this introduction. We typically get back within 24 hours.
+                    {r.status === 'approved'
+                      ? 'We have shared your interest with the employer and will let you know once they respond.'
+                      : 'Our team is reviewing this introduction. We typically get back within 24 hours.'}
                   </p>
                 </div>
               </CardContent>

@@ -90,10 +90,10 @@ export function CandidateCard({ candidate }: { candidate: PublicCandidate }) {
               <Eye className="h-6 w-6 text-[#9B7B3C]" />
             </div>
             <h3 className="font-heading text-xl font-bold text-white">
-              Full profiles are available once a role is submitted.
+              Full profiles are shared privately with registered employers.
             </h3>
             <p className="mt-3 text-sm text-neutral-400">
-              Submit a role brief and our team will introduce you to the most suitable candidates.
+              Submit a role brief to browse the HHT Approved network and request an introduction. HHT facilitates every connection, with the candidate&apos;s consent.
             </p>
             <Link
               href="/register/employer"

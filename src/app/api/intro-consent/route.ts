@@ -4,7 +4,11 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 // PATCH /api/intro-consent
 // Body: { request_id: string, decision: 'accepted' | 'declined' }
-// Called by the candidate to confirm or refuse an introduction the admin has approved.
+//
+// Final step of an introduction, after HHT has approved it. The party who did
+// NOT start the request confirms or declines:
+//   employer-initiated  -> the candidate confirms
+//   candidate-initiated -> the employer confirms
 export async function PATCH(req: NextRequest) {
   const supabase = await createClient();
   const admin = createAdminClient();
@@ -24,34 +28,16 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid decision' }, { status: 400 });
   }
 
-  // Fetch the request and verify the caller is the candidate it belongs to
-  const { data: candidateProfile } = await supabase
-    .from('candidate_profiles')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!candidateProfile) {
-    return NextResponse.json({ error: 'Candidate profile not found' }, { status: 403 });
-  }
-
   const { data: request, error: fetchErr } = await admin
     .from('contact_requests')
     .select(`
       id,
-      employer_id,
-      candidate_id,
-      role_id,
       status,
+      initiated_by,
       candidate_consent,
-      employer_profiles!contact_requests_employer_id_fkey (
-        user_id,
-        profiles:user_id ( first_name, last_name )
-      ),
-      candidate_profiles!contact_requests_candidate_id_fkey (
-        user_id,
-        profiles:user_id ( first_name, last_name )
-      ),
+      employer_consent,
+      employer_profiles!contact_requests_employer_id_fkey ( user_id ),
+      candidate_profiles!contact_requests_candidate_id_fkey ( user_id ),
       roles ( title )
     `)
     .eq('id', request_id)
@@ -61,98 +47,83 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Request not found' }, { status: 404 });
   }
 
-  if (request.candidate_id !== candidateProfile.id) {
+  const employerUserId = ((request.employer_profiles as unknown) as { user_id: string } | null)?.user_id || '';
+  const candidateUserId = ((request.candidate_profiles as unknown) as { user_id: string } | null)?.user_id || '';
+  const roleTitle = ((request.roles as unknown) as { title: string } | null)?.title || 'the role';
+
+  // Who is allowed to answer this request?
+  const responder: 'candidate' | 'employer' = request.initiated_by === 'candidate' ? 'employer' : 'candidate';
+  const responderUserId = responder === 'candidate' ? candidateUserId : employerUserId;
+  if (user.id !== responderUserId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (request.status !== 'approved' || request.candidate_consent !== 'pending') {
+  const consentColumn = responder === 'candidate' ? 'candidate_consent' : 'employer_consent';
+  const consentAtColumn = responder === 'candidate' ? 'candidate_consent_at' : 'employer_consent_at';
+  if (request.status !== 'approved' || request[consentColumn] !== 'pending') {
     return NextResponse.json(
       { error: 'This introduction is not awaiting your confirmation' },
       { status: 409 },
     );
   }
 
-  // Cast nested join shape (Supabase returns arrays for relations)
-  const employer = (request.employer_profiles as unknown) as {
-    user_id: string;
-    profiles: { first_name: string; last_name: string };
-  } | null;
-  const candidate = (request.candidate_profiles as unknown) as {
-    user_id: string;
-    profiles: { first_name: string; last_name: string };
-  } | null;
-  const role = (request.roles as unknown) as { title: string } | null;
+  const now = new Date().toISOString();
+  const update =
+    decision === 'accepted'
+      ? { status: 'introduced', [consentColumn]: 'accepted', [consentAtColumn]: now, introduced_at: now }
+      : { status: 'declined', [consentColumn]: 'declined', [consentAtColumn]: now, declined_by: responder };
 
-  const employerUserId = employer?.user_id || '';
-  const employerName = employer?.profiles
-    ? `${employer.profiles.first_name} ${employer.profiles.last_name}`
-    : 'the employer';
-  const candidateName = candidate?.profiles
-    ? `${candidate.profiles.first_name} ${candidate.profiles.last_name}`
-    : 'the candidate';
-  const roleTitle = role?.title || 'the role';
-
-  if (decision === 'accepted') {
-    const now = new Date().toISOString();
-    const { error: updateErr } = await admin
-      .from('contact_requests')
-      .update({
-        status: 'introduced',
-        candidate_consent: 'accepted',
-        candidate_consent_at: now,
-        introduced_at: now,
-      })
-      .eq('id', request_id)
-      .eq('status', 'approved')
-      .eq('candidate_consent', 'pending');
-
-    if (updateErr) {
-      console.error('intro consent update failed', updateErr.code);
-    return NextResponse.json({ error: 'Could not save your answer. Please try again.' }, { status: 500 });
-    }
-
-    // Notify employer the intro is now live
-    if (employerUserId) {
-      await admin.from('notifications').insert({
-        user_id: employerUserId,
-        type: 'introduction_approved',
-        title: 'Introduction Confirmed',
-        body: `${candidateName} has accepted your introduction request for the ${roleTitle} role. We will be in touch with details shortly.`,
-        action_url: '/dashboard/employer/introductions',
-      });
-    }
-
-    return NextResponse.json({ ok: true, status: 'introduced' });
-  }
-
-  // decision === 'declined'
-  const { error: updateErr } = await admin
+  // Guard on the current state so a double submit can't move it twice.
+  const { data: updated, error: updateErr } = await admin
     .from('contact_requests')
-    .update({
-      status: 'declined',
-      candidate_consent: 'declined',
-      candidate_consent_at: new Date().toISOString(),
-      declined_by: 'candidate',
-    })
+    .update(update)
     .eq('id', request_id)
     .eq('status', 'approved')
-    .eq('candidate_consent', 'pending');
+    .eq(consentColumn, 'pending')
+    .select('id');
 
   if (updateErr) {
     console.error('intro consent update failed', updateErr.code);
     return NextResponse.json({ error: 'Could not save your answer. Please try again.' }, { status: 500 });
   }
+  if (!updated || updated.length === 0) {
+    return NextResponse.json({ error: 'This introduction has already been answered' }, { status: 409 });
+  }
 
-  // Graceful, non-revealing message to the employer
-  if (employerUserId) {
+  // Tell the other party and HHT. No names are shared in notifications.
+  const otherUserId = responder === 'candidate' ? employerUserId : candidateUserId;
+  const otherDashboard = responder === 'candidate' ? '/dashboard/employer/introductions' : '/dashboard/candidate/introductions';
+
+  if (otherUserId) {
+    await admin.from('notifications').insert(
+      decision === 'accepted'
+        ? {
+            user_id: otherUserId,
+            type: 'introduction_approved',
+            title: 'Introduction confirmed',
+            body: `Your introduction for the ${roleTitle} role has been confirmed by both sides. HHT will be in touch to facilitate next steps.`,
+            action_url: otherDashboard,
+          }
+        : {
+            user_id: otherUserId,
+            type: 'introduction_declined',
+            title: 'Introduction update',
+            body: `We are unable to progress this introduction for the ${roleTitle} role at this time.`,
+            action_url: otherDashboard,
+          },
+    );
+  }
+
+  const { data: admins } = await admin.from('profiles').select('id').eq('role', 'admin');
+  for (const a of admins || []) {
     await admin.from('notifications').insert({
-      user_id: employerUserId,
-      type: 'introduction_declined',
-      title: 'Introduction Update',
-      body: `Unfortunately, we are unable to progress this introduction for the ${roleTitle} role at this time. Our team will continue to look for the right match for you.`,
-      action_url: '/dashboard/employer/introductions',
+      user_id: a.id,
+      type: decision === 'accepted' ? 'introduction_approved' : 'introduction_declined',
+      title: decision === 'accepted' ? 'Introduction confirmed' : 'Introduction declined',
+      body: `The ${responder} ${decision === 'accepted' ? 'confirmed' : 'declined'} the introduction for the ${roleTitle} role.`,
+      action_url: '/admin/introductions',
     });
   }
 
-  return NextResponse.json({ ok: true, status: 'declined' });
+  return NextResponse.json({ ok: true, status: decision === 'accepted' ? 'introduced' : 'declined' });
 }

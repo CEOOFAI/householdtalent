@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Create Your Account",
+  description:
+    "Join HouseHoldTalent as an employer or apply to join the HHT Approved network of household professionals.",
+};
 import { Users, Briefcase } from "lucide-react";
 
 export default function RegisterPage() {
@@ -22,7 +29,7 @@ export default function RegisterPage() {
             <div>
               <h2 className="font-medium text-white">I&apos;m looking for work</h2>
               <p className="mt-1 text-sm text-neutral-500">
-                Create a profile and get discovered by employers
+                Apply to join, browse suitable roles and request introductions
               </p>
             </div>
           </div>
@@ -36,7 +43,7 @@ export default function RegisterPage() {
             <div>
               <h2 className="font-medium text-white">I&apos;m hiring staff</h2>
               <p className="mt-1 text-sm text-neutral-500">
-                Browse candidates and find the perfect match
+                Post a role, browse anonymised profiles and request introductions
               </p>
             </div>
           </div>

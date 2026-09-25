@@ -10,6 +10,8 @@ interface IntroductionActionsProps {
   requestId: string
   status: ContactRequestStatus
   candidateConsent: 'pending' | 'accepted' | 'declined' | null
+  initiatedBy?: 'employer' | 'candidate'
+  employerConsent?: 'pending' | 'accepted' | 'declined' | null
   employerUserId: string
   candidateUserId: string
   employerName: string
@@ -22,6 +24,8 @@ export function IntroductionActions({
   requestId,
   status: initialStatus,
   candidateConsent: initialConsent,
+  initiatedBy = 'employer',
+  employerConsent: initialEmployerConsent = null,
   employerUserId,
   candidateUserId,
   employerName,
@@ -31,6 +35,7 @@ export function IntroductionActions({
 }: IntroductionActionsProps) {
   const [status, setStatus] = useState(initialStatus)
   const [consent, setConsent] = useState(initialConsent)
+  const [employerConsent, setEmployerConsent] = useState(initialEmployerConsent)
   const [loading, setLoading] = useState<'approve' | 'decline' | null>(null)
   const [notes, setNotes] = useState(initialNotes || '')
   const [savingNotes, setSavingNotes] = useState(false)
@@ -40,7 +45,39 @@ export function IntroductionActions({
     const supabase = createClient()
 
     try {
-      if (action === 'approve') {
+      if (action === 'approve' && initiatedBy === 'candidate') {
+        // Candidate expressed interest: after HHT approves, the employer confirms.
+        const { error } = await supabase
+          .from('contact_requests')
+          .update({
+            status: 'approved',
+            employer_consent: 'pending',
+            admin_approved_at: new Date().toISOString(),
+            admin_notes: notes || null,
+          })
+          .eq('id', requestId)
+          .eq('status', 'pending')
+        if (error) throw error
+
+        await supabase.from('notifications').insert({
+          user_id: employerUserId,
+          type: 'introduction_request',
+          title: 'A candidate would like to be introduced',
+          body: `An HHT Approved candidate has expressed interest in your ${roleTitle} role. Please review and confirm whether you would like an introduction.`,
+          action_url: '/dashboard/employer/introductions',
+        })
+        await supabase.from('notifications').insert({
+          user_id: candidateUserId,
+          type: 'introduction_pending_employer',
+          title: 'Your interest has been passed on',
+          body: `We have shared your interest in the ${roleTitle} role with the employer and will let you know once they respond.`,
+          action_url: '/dashboard/candidate/introductions',
+        })
+
+        setStatus('approved')
+        setEmployerConsent('pending')
+        toast.success('Approved. Employer has been asked to confirm.')
+      } else if (action === 'approve') {
         // Step 2: Admin approves. Move to candidate consent stage.
         const { error } = await supabase
           .from('contact_requests')
@@ -89,13 +126,23 @@ export function IntroductionActions({
 
         if (error) throw error
 
-        await supabase.from('notifications').insert({
-          user_id: employerUserId,
-          type: 'introduction_declined',
-          title: 'Introduction Request Update',
-          body: `Your introduction request for the ${roleTitle} role could not be progressed. Please contact us if you would like more information.`,
-          action_url: '/dashboard/employer/introductions',
-        })
+        await supabase.from('notifications').insert(
+          initiatedBy === 'candidate'
+            ? {
+                user_id: candidateUserId,
+                type: 'introduction_declined',
+                title: 'Update on your interest',
+                body: `Thank you for your interest in the ${roleTitle} role. On this occasion we are not able to progress an introduction.`,
+                action_url: '/dashboard/candidate/introductions',
+              }
+            : {
+                user_id: employerUserId,
+                type: 'introduction_declined',
+                title: 'Introduction Request Update',
+                body: `Your introduction request for the ${roleTitle} role could not be progressed. Please contact us if you would like more information.`,
+                action_url: '/dashboard/employer/introductions',
+              },
+        )
 
         setStatus('declined')
         toast.success('Request declined and employer notified')
@@ -124,7 +171,8 @@ export function IntroductionActions({
     setSavingNotes(false)
   }
 
-  const awaitingCandidate = status === 'approved' && consent === 'pending'
+  const awaitingCandidate = status === 'approved' && initiatedBy !== 'candidate' && consent === 'pending'
+  const awaitingEmployer = status === 'approved' && initiatedBy === 'candidate' && employerConsent === 'pending'
 
   return (
     <div className="space-y-3">
@@ -170,7 +218,7 @@ export function IntroductionActions({
             ) : (
               <Send className="h-3.5 w-3.5" />
             )}
-            Approve & Send to Candidate
+            {initiatedBy === 'candidate' ? 'Approve & Send to Employer' : 'Approve & Send to Candidate'}
           </button>
           <button
             onClick={() => handleAction('decline')}
@@ -184,6 +232,12 @@ export function IntroductionActions({
             )}
             Decline
           </button>
+        </div>
+      )}
+
+      {awaitingEmployer && (
+        <div className="rounded-lg bg-[#9B7B3C]/10 px-3 py-2 text-center text-xs font-medium text-[#9B7B3C]">
+          Awaiting employer confirmation
         </div>
       )}
 

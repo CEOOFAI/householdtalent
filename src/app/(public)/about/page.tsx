@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { RevealGroup } from "@/components/motion/reveal";
 
 export const metadata: Metadata = {
   title: "About",
   description:
-    "HouseHoldTalent is a private network for exceptional household professionals and the families, estates and family offices who need them. Access by referral, recommendation or application only.",
+    "HouseHoldTalent (HHT) is a private talent and introduction platform for HHT Approved household professionals and the families, estates and family offices who need them.",
 };
 
 export default function AboutPage() {
@@ -15,16 +16,16 @@ export default function AboutPage() {
           About HouseHoldTalent
         </h1>
 
-        <div className="mt-12 space-y-10 text-neutral-400">
+        <RevealGroup stagger={100} className="mt-12 space-y-10 text-neutral-400">
           <p className="text-lg leading-relaxed">
-            HouseHoldTalent is a private network for exceptional household
-            professionals and the families, estates and family offices who need
-            them.
+            HouseHoldTalent (HHT) is a private talent and introduction platform
+            for exceptional household professionals and the families, estates
+            and family offices who need them.
           </p>
           <p className="leading-relaxed">
-            This is not a job board. It is not a recruiter database. It is a
-            curated introduction ecosystem, built on the belief that the right
-            placement comes from trust, not traffic.
+            This is not a job board. It is not a recruitment agency. It is a
+            curated introduction platform, built on the belief that the right
+            introduction comes from trust, not traffic.
           </p>
 
           {/* Our Story */}
@@ -33,12 +34,12 @@ export default function AboutPage() {
               Our Story
             </h2>
             <p className="mt-3 leading-relaxed">
-              HouseHoldTalent was founded by Yolanda, someone who spent over 12
-              years working inside the private service world, not observing it
-              from the outside. She recognised that the private staffing world
-              was ready for something new, a more direct, trust-led approach
-              that worked alongside the industry rather than around it. So she
-              built it.
+              HouseHoldTalent was founded by Yolanda, who spent over 12 years
+              working inside the private service world rather than observing it
+              from the outside. She recognised that private staffing was ready
+              for something new: a more considered, trust-led approach that
+              works alongside the industry rather than around it. So she built
+              it.
             </p>
           </div>
 
@@ -53,22 +54,24 @@ export default function AboutPage() {
             HouseHoldTalent prioritises neither.
           </p>
           <p className="leading-relaxed">
-            Every candidate who joins this network has been reviewed. Every
-            profile has been assessed for professionalism, experience,
+            Every candidate in this network is HHT Approved. HHT Approved means
+            every profile is individually reviewed by our team before
+            admission, with attention to professionalism, experience,
             presentation and suitability for private service. Nobody simply
-            signs up. Access is earned, by application, referral or
+            signs up. Access is earned by application, referral or
             recommendation only.
           </p>
           <p className="leading-relaxed">
-            For employers, that means every introduction we make is a
-            considered one. No noise. No irrelevant profiles. No wasted time.
+            For employers, that means every introduction we facilitate is a
+            considered one. Contact details are never shared automatically. HHT
+            stays in the middle, and details are released only with consent.
           </p>
           <p className="leading-relaxed">
-            We also work with a select group of trusted recruitment
-            professionals who share our standards. HouseHoldTalent is not in
-            competition with good recruiters, it is a better place for them to
-            work. Access to a genuinely curated candidate pool, presented
-            professionally, with no noise and no compromise on quality.
+            Recruitment professionals who share our standards are invited to
+            join as agency partners. HouseHoldTalent is not in competition with
+            good recruiters. It offers them access to a genuinely curated
+            candidate network, presented professionally, with no compromise on
+            quality.
           </p>
 
           {/* Mission */}
@@ -77,9 +80,9 @@ export default function AboutPage() {
               Our Mission
             </h2>
             <p className="mt-3 leading-relaxed">
-              To become the most trusted private staffing network in the world,
-              where quality is protected, discretion is guaranteed, and every
-              introduction means something.
+              To become the most trusted private household talent network in
+              the world, where quality is protected, every introduction means
+              something, and discretion is fundamental to everything we do.
             </p>
           </div>
 
@@ -91,8 +94,8 @@ export default function AboutPage() {
             <p className="mt-3 leading-relaxed">
               We keep the network deliberately curated. A smaller,
               higher-quality pool of candidates consistently outperforms a
-              large, unvetted one. Our employers do not receive fifty profiles.
-              They receive the right ones.
+              large, unreviewed one. Our employers do not wade through hundreds
+              of profiles. They see the right ones.
             </p>
             <p className="mt-3 leading-relaxed">
               Matching in the private household world is about more than
@@ -107,8 +110,9 @@ export default function AboutPage() {
               Where We Operate
             </p>
             <p className="mt-3 font-heading text-lg text-white">
-              Founded in Gibraltar. Operating globally across private
-              households, family offices and estates.
+              Founded in Gibraltar. Working with private households, family
+              offices and estates in Gibraltar, the Costa del Sol and
+              internationally.
             </p>
           </div>
 
@@ -138,7 +142,7 @@ export default function AboutPage() {
               Selected, not listed.
             </p>
           </div>
-        </div>
+        </RevealGroup>
 
         {/* CTA */}
         <div className="mt-16 text-center">

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Terms of Service for HouseHoldTalent.",
+  description: "Terms of Service for HouseHoldTalent (HHT), a private talent and introduction platform for household staff.",
 };
 
 export default function TermsPage() {
@@ -13,7 +13,7 @@ export default function TermsPage() {
           Terms of Service
         </h1>
         <p className="mt-4 text-sm text-muted-foreground">
-          Last updated: March 2026
+          Last updated: September 2026
         </p>
 
         <div className="mt-12 space-y-8 text-sm leading-relaxed text-muted-foreground">
@@ -33,10 +33,22 @@ export default function TermsPage() {
               2. Description of Service
             </h2>
             <p>
-              HouseHoldTalent is a platform that connects employers seeking
-              domestic staff with candidates offering their services. We
-              facilitate introductions but do not employ, endorse, or guarantee
-              any candidate or employer.
+              HouseHoldTalent (&quot;HHT&quot;) is a private talent and
+              introduction platform for household staff. It is not a
+              recruitment agency. Employers and candidates may request
+              introductions, and HHT facilitates each introduction. Contact
+              details are never shared automatically and are released only with
+              consent. HHT is not the employer and is not a party to any
+              employment contract, and does not guarantee any candidate,
+              employer or outcome.
+            </p>
+            <p className="mt-3">
+              &quot;HHT Approved&quot; means a profile has been individually
+              reviewed by our team before admission. It is not a background,
+              police or reference check, nor an independent verification of the
+              information provided. &quot;References Checked&quot; is shown only
+              where HHT has obtained referee feedback. Employers remain
+              responsible for their own pre-employment checks.
             </p>
           </section>
 
@@ -53,13 +65,15 @@ export default function TermsPage() {
 
           <section>
             <h2 className="mb-3 font-heading text-lg font-semibold text-white">
-              4. Subscriptions and Payments
+              4. Employer Plans and Payments
             </h2>
             <p>
-              Paid subscriptions are billed on a recurring basis. You may
-              cancel at any time, and your subscription will remain active
-              until the end of the current billing period. No refunds are
-              provided for partial periods.
+              Employer plans (Standard, Ongoing Hiring and Priority Search) are
+              one-off, prepaid 30-day access packages. They are not
+              subscriptions and do not renew automatically. Access ends at the
+              close of the 30-day period, and unused time does not roll over.
+              Agency partner arrangements are agreed separately. Nothing in
+              these Terms affects your statutory consumer rights.
             </p>
           </section>
 

@@ -18,6 +18,8 @@ export default async function AdminCandidatesPage() {
       gold_verified,
       police_check_url,
       police_check_uploaded_at,
+      photos,
+      cv_url,
       profiles:user_id!inner (first_name, last_name, email, role)
     `)
     .order("created_at", { ascending: false });
@@ -36,6 +38,8 @@ export default async function AdminCandidatesPage() {
     .filter((c) => c.profiles?.role === "candidate")
     .map(({ profiles, ...rest }) => ({
       ...rest,
+      has_photo: ((rest as unknown as { photos?: string[] | null }).photos ?? []).length > 0,
+      has_cv: !!(rest as unknown as { cv_url?: string | null }).cv_url,
       profiles: profiles
         ? {
             first_name: profiles.first_name,

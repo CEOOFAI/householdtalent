@@ -8,7 +8,7 @@ import {
   User,
   Briefcase,
   SlidersHorizontal,
-  Crown,
+  ShieldCheck,
   ClipboardCheck,
   ArrowLeft,
   ArrowRight,
@@ -68,6 +68,7 @@ interface FormState {
 
   // Step 5
   agreedToTerms: boolean
+  publicListingConsent: boolean
 }
 
 const INITIAL_FORM: FormState = {
@@ -98,6 +99,7 @@ const INITIAL_FORM: FormState = {
   availableFrom: '',
   profileType: null,
   agreedToTerms: false,
+  publicListingConsent: false,
 }
 
 const DRIVING_LICENCE_OPTIONS = [
@@ -140,7 +142,7 @@ const STEP_META = [
   { num: 1, label: 'Basic Profile', icon: User },
   { num: 2, label: 'Experience', icon: Briefcase },
   { num: 3, label: 'Preferences', icon: SlidersHorizontal },
-  { num: 4, label: 'Profile Type', icon: Crown },
+  { num: 4, label: 'Privacy', icon: ShieldCheck },
   { num: 5, label: 'Review', icon: ClipboardCheck },
 ] as const
 
@@ -361,6 +363,14 @@ export default function CandidateProfilePage() {
 
       if (candidate) {
         setHasExistingProfile(true)
+        if (candidate.photos && candidate.photos[0]) {
+          fetch('/api/candidate-files?kind=photo')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((body: { url?: string } | null) => {
+              if (!cancelled && body?.url) setForm((prev) => (prev.photoPreview ? prev : { ...prev, photoPreview: body.url! }))
+            })
+            .catch(() => {})
+        }
         const fullName = candidate.full_name
           || [profile?.first_name, profile?.last_name].filter(Boolean).join(' ')
         const yearsMap: Record<number, string> = {
@@ -398,8 +408,9 @@ export default function CandidateProfilePage() {
           salaryMax: candidate.salary_max != null ? String(candidate.salary_max) : '',
           availableFrom: candidate.available_from || '',
           profileType: (candidate.tier === 'recommended' || candidate.tier === 'complete') ? 'premium' : 'standard',
-          agreedToTerms: !!candidate.public_listing_consent,
-          photoPreview: (candidate.photos && candidate.photos[0]) || null,
+          agreedToTerms: true,
+          publicListingConsent: !!candidate.public_listing_consent,
+          photoPreview: null,
           cvFileName: candidate.cv_url ? 'Existing CV uploaded' : null,
         }))
       } else if (profile) {
@@ -565,10 +576,8 @@ export default function CandidateProfilePage() {
           .from('candidate-photos')
           .upload(path, form.photoFile, { upsert: true })
         if (!uploadErr) {
-          const { data: urlData } = supabase.storage
-            .from('candidate-photos')
-            .getPublicUrl(path)
-          photoUrl = urlData.publicUrl
+          // Private bucket: store the object path; views use signed URLs.
+          photoUrl = path
         } else {
           console.error('Photo upload failed:', uploadErr)
           toast.error('Photo upload failed but profile will still save')
@@ -584,10 +593,7 @@ export default function CandidateProfilePage() {
           .from('resumes')
           .upload(path, form.cvFile, { upsert: true })
         if (!cvErr) {
-          const { data: urlData } = supabase.storage
-            .from('resumes')
-            .getPublicUrl(path)
-          cvUrl = urlData.publicUrl
+          cvUrl = path
         } else {
           console.error('CV upload failed:', cvErr)
           toast.error('CV upload failed but profile will still save')
@@ -657,6 +663,8 @@ export default function CandidateProfilePage() {
         // tier is set only by HHT / payment; status by the database guard keeps
         // an already-approved profile approved when the candidate edits it.
         status: 'pending_review',
+        public_listing_consent: form.publicListingConsent,
+        public_listing_consent_at: form.publicListingConsent ? new Date().toISOString() : null,
       }
       if (photoUrl) payload.photos = [photoUrl]
       if (cvUrl) payload.cv_url = cvUrl
@@ -706,7 +714,6 @@ export default function CandidateProfilePage() {
   /* ─── Success Screen ─── */
 
   if (step === 'success') {
-    const isPremium = form.profileType === 'premium'
     return (
       <div className="mx-auto max-w-xl py-20 text-center">
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#9B7B3C]/20">
@@ -719,38 +726,6 @@ export default function CandidateProfilePage() {
           Thanks. Our team will personally review your profile within 24 hours.
           We&apos;ll be in touch as soon as it&apos;s approved.
         </p>
-        {isPremium && (
-          <p className="mt-2 text-sm text-[#9B7B3C]">
-            Your Premium profile will be prioritised for employers once live.
-          </p>
-        )}
-
-        {!isPremium && (
-          <Card className="mx-auto mt-8 max-w-sm border-[#9B7B3C]/30 bg-[#9B7B3C]/5">
-            <CardContent className="p-6 text-center">
-              <Crown className="mx-auto mb-3 h-6 w-6 text-[#9B7B3C]" />
-              <p className="text-sm font-medium text-white">
-                Upgrade to Premium
-              </p>
-              <p className="mt-1 text-xs text-neutral-400">
-                Gold-highlighted profile, increased visibility, and a
-                professionally structured CV.
-              </p>
-              <button
-                onClick={() =>
-                  toast.info(
-                    'Stripe checkout coming soon. Contact us to upgrade your profile.',
-                    { duration: 5000 }
-                  )
-                }
-                className="mt-4 rounded-lg bg-[#9B7B3C] px-6 py-2 text-sm font-medium text-black transition-colors hover:bg-[#9B7B3C]/90"
-              >
-                Upgrade to Premium
-              </button>
-            </CardContent>
-          </Card>
-        )}
-
         <div className="mt-8 flex items-center justify-center gap-4">
           <Link
             href="/dashboard/candidate/opportunities"
@@ -758,14 +733,12 @@ export default function CandidateProfilePage() {
           >
             Browse Roles
           </Link>
-          {!isPremium && (
-            <Link
-              href="/dashboard/candidate/subscription"
-              className="rounded-lg border border-neutral-700 px-6 py-2.5 text-sm font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white"
-            >
-              Complete Profile
-            </Link>
-          )}
+          <Link
+            href="/dashboard/candidate"
+            className="rounded-lg border border-neutral-700 px-6 py-2.5 text-sm font-medium text-neutral-300 transition-colors hover:border-neutral-600 hover:text-white"
+          >
+            Go to Dashboard
+          </Link>
         </div>
       </div>
     )
@@ -1388,135 +1361,60 @@ export default function CandidateProfilePage() {
         </div>
       )}
 
-      {/* ─── STEP 4: Profile Type ─── */}
+      {/* ─── STEP 4: Privacy & Visibility ─── */}
       {step === 4 && (
         <div className="space-y-6">
-          <SectionHeading>Choose Your Profile</SectionHeading>
+          <SectionHeading>Privacy &amp; Visibility</SectionHeading>
+          <p className="text-sm leading-relaxed text-neutral-400">
+            Membership is complimentary. Your name, contact details and photo are never shown
+            publicly or shared automatically. Registered employers see an anonymised summary, and
+            HHT only introduces you with your consent.
+          </p>
 
           <div className="grid gap-5 sm:grid-cols-2">
-            {/* Standard */}
-            <Card
-              className={`cursor-pointer border-neutral-700 bg-neutral-900 transition-all hover:border-neutral-600 ${
-                form.profileType === 'standard'
-                  ? 'ring-2 ring-neutral-500'
-                  : ''
-              }`}
-              onClick={() => update('profileType', 'standard')}
-            >
-              <CardContent className="p-6">
-                <div className="mb-3 inline-flex rounded-lg bg-neutral-800 p-2 text-neutral-400">
-                  <Star className="h-5 w-5" />
-                </div>
-                <h3 className="font-heading text-lg font-semibold text-white">
-                  Standard Profile
-                </h3>
-                <p className="mt-1 text-2xl font-bold text-neutral-300">Free</p>
-
-                <ul className="mt-4 space-y-2.5">
-                  {[
-                    'Basic profile visible',
-                    'Apply to roles',
-                    'Limited visibility',
-                  ].map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex items-start gap-2 text-sm text-neutral-400"
-                    >
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
+            {[
+              {
+                value: false,
+                title: 'Private network only',
+                body: 'An anonymised summary is visible to registered employers inside HHT. Nothing appears on the public website.',
+              },
+              {
+                value: true,
+                title: 'Also feature me publicly',
+                body: 'An anonymised summary (role, experience, languages, a short excerpt of your introduction) may also appear on our public network page. No name, photo or contact details.',
+              },
+            ].map((option) => {
+              const selected = form.publicListingConsent === option.value
+              return (
                 <button
+                  key={option.title}
                   type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    update('profileType', 'standard')
-                    goNext()
-                  }}
-                  className={`mt-6 w-full rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors ${
-                    form.profileType === 'standard'
-                      ? 'border-neutral-500 bg-neutral-800 text-white'
-                      : 'border-neutral-700 text-neutral-400 hover:border-neutral-600 hover:text-white'
+                  onClick={() => update('publicListingConsent', option.value)}
+                  aria-pressed={selected}
+                  className={`rounded-xl border p-6 text-left transition-all duration-200 hover:-translate-y-0.5 ${
+                    selected
+                      ? 'border-[#9B7B3C] bg-[#9B7B3C]/10 shadow-[0_0_24px_rgba(155,123,60,0.15)]'
+                      : 'border-neutral-700 bg-neutral-900 hover:border-neutral-600'
                   }`}
                 >
-                  Continue with Free
-                </button>
-              </CardContent>
-            </Card>
-
-            {/* Premium */}
-            <Card
-              className={`cursor-pointer border-[#9B7B3C]/40 bg-neutral-900 transition-all hover:border-[#9B7B3C]/60 ${
-                form.profileType === 'premium'
-                  ? 'ring-2 ring-[#9B7B3C]'
-                  : ''
-              }`}
-              onClick={() => update('profileType', 'premium')}
-            >
-              <CardContent className="p-6">
-                <div className="mb-3 inline-flex rounded-lg bg-[#9B7B3C]/10 p-2 text-[#9B7B3C]">
-                  <Crown className="h-5 w-5" />
-                </div>
-                <h3 className="font-heading text-lg font-semibold text-white">
-                  Premium Profile
-                </h3>
-                <p className="mt-1 text-2xl font-bold text-[#9B7B3C]">
-                  £50{' '}
-                  <span className="text-sm font-normal text-neutral-500">
-                    / 3 months
-                  </span>
-                </p>
-
-                <ul className="mt-4 space-y-2.5">
-                  {[
-                    'Enhanced profile with more detail',
-                    'Gold-highlighted profile',
-                    'Increased visibility to employers',
-                    'Professionally structured CV',
-                    'Downloadable CV',
-                  ].map((feature) => (
-                    <li
-                      key={feature}
-                      className="flex items-start gap-2 text-sm text-neutral-300"
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-heading text-lg font-semibold text-white">{option.title}</h3>
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                        selected ? 'border-[#9B7B3C] bg-[#9B7B3C]' : 'border-neutral-600'
+                      }`}
                     >
-                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#9B7B3C]" />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-
-                <p className="mt-4 text-xs text-neutral-500">
-                  A professionally structured profile ensures you are presented
-                  at the highest standard.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    update('profileType', 'premium')
-                    toast.info(
-                      'Stripe checkout coming soon. Contact us to upgrade your profile.',
-                      { duration: 5000 }
-                    )
-                    goNext()
-                  }}
-                  className="mt-6 w-full rounded-lg bg-[#9B7B3C] px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#9B7B3C]/90"
-                >
-                  Upgrade to Premium
+                      {selected && <Check className="h-3 w-3 text-black" />}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-400">{option.body}</p>
                 </button>
-              </CardContent>
-            </Card>
+              )
+            })}
           </div>
+          <p className="text-xs text-neutral-500">You can change this at any time from your profile.</p>
 
-          <NavButtons
-            step={4}
-            onBack={goBack}
-            onNext={goNext}
-            nextDisabled={!form.profileType}
-          />
+          <NavButtons step={4} onBack={goBack} onNext={goNext} />
         </div>
       )}
 
@@ -1662,12 +1560,8 @@ export default function CandidateProfilePage() {
                   <ReviewRow label="Available From" value={form.availableFrom} />
                 )}
                 <ReviewRow
-                  label="Profile Type"
-                  value={
-                    form.profileType === 'premium'
-                      ? 'Premium'
-                      : 'Standard (Free)'
-                  }
+                  label="Public network page"
+                  value={form.publicListingConsent ? 'Anonymised summary shown' : 'Private network only'}
                 />
               </div>
             </CardContent>

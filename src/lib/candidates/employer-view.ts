@@ -120,3 +120,17 @@ export async function candidatesForIntroductions(
   }
   return result
 }
+
+// Anonymised cards for specific candidates (e.g. an employer's saved list).
+// Only active candidates are returned.
+export async function candidateCardsByIds(ids: string[]): Promise<EmployerCandidateCard[]> {
+  if (ids.length === 0) return []
+  const admin = createAdminClient()
+  const { data, error } = await admin
+    .from('candidate_profiles')
+    .select(CARD_COLUMNS)
+    .in('id', ids)
+    .eq('status', 'active')
+  if (error) throw new Error(`saved candidates failed: ${error.message}`)
+  return ((data ?? []) as CardRow[]).map(toCard)
+}

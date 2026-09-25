@@ -1,6 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Mail } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "Verify Your Email",
+  description: "Verify your email address to activate your HouseHoldTalent account.",
+};
 
 export default function VerifyEmailPage() {
   return (
@@ -16,8 +22,8 @@ export default function VerifyEmailPage() {
         </p>
         <div className="rounded-md border border-primary/20 bg-primary/5 p-4">
           <p className="text-xs text-muted-foreground">
-            Your profile won&apos;t be visible to employers until your email is
-            verified.
+            Your application can only be reviewed once your email is verified.
+            Profiles are never shared without your consent.
           </p>
         </div>
         <Link

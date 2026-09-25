@@ -1,42 +1,48 @@
 import type { Metadata } from "next";
-import { Card, CardContent } from "@/components/ui/card";
+import { AccordionItem } from "@/components/motion/accordion-item";
+import { Reveal } from "@/components/motion/reveal";
 
 export const metadata: Metadata = {
   title: "FAQ",
   description:
-    "Frequently asked questions about HouseHoldTalent, our platform, pricing, and how it all works.",
+    "Frequently asked questions about HouseHoldTalent: HHT Approved profiles, HHT-facilitated introductions, pricing and candidate membership.",
 };
 
 const FAQS = [
   {
-    question: "How is Household Talent different from a staffing agency?",
+    question: "How is HouseHoldTalent different from a recruitment agency?",
     answer:
-      "Traditional agencies charge a month's salary and act as intermediaries. We offer fixed-price access plans and give you direct access to carefully selected candidates. No placement fees, no commissions, no hidden costs.",
+      "HouseHoldTalent (HHT) is a private talent and introduction platform, not a recruitment agency. Traditional agencies typically charge a percentage of salary. We offer fixed-price 30-day access plans, with no success fees and no commission. Every introduction is facilitated by HHT.",
   },
   {
-    question: "How are candidates selected?",
+    question: "What does HHT Approved mean?",
     answer:
-      "Every candidate profile is reviewed by our team before being introduced. We assess experience, check references where possible, and ensure profiles meet a consistently high standard.",
+      "HHT Approved means every profile is individually reviewed by our team before admission. We consider experience across private households, family offices, estates, yachts and recognised luxury hospitality. Where HHT has obtained referee feedback, the profile is also marked References Checked.",
   },
   {
     question: "Where do you operate?",
     answer:
-      "Founded in Gibraltar, we serve clients internationally.",
+      "Founded in Gibraltar, we work with households in Gibraltar, the Costa del Sol and internationally.",
   },
   {
     question: "Is it free for candidates?",
     answer:
-      "Yes. Candidates can create a profile for free and be considered for introductions. Paid tiers offer enhanced visibility, priority placement, and a professionally structured CV.",
+      "Yes. Membership is complimentary at launch. Approved members may choose optional CV services (HHT CV Polish, £35, or Professional CV, £59). These are kept completely separate from admission, and paying for a CV has no effect on whether an application is approved.",
   },
   {
     question: "How do introductions work?",
     answer:
-      "Employers submit a role brief describing what they need. Our team reviews it, selects the most suitable candidates, and makes personal introductions. No noise, no irrelevant profiles.",
+      "Employers post a role and browse anonymised HHT Approved profiles. Candidates browse suitable roles. Either side can request an introduction. HHT reviews each request, the candidate consents, and HHT facilitates the introduction. Contact details are never shared automatically.",
+  },
+  {
+    question: "Will HHT search for candidates on my behalf?",
+    answer:
+      "Yes, with Priority Search. HHT runs a dedicated talent search, reaches out to suitable candidates and delivers a curated shortlist. On Standard and Ongoing Hiring, you browse the network and request introductions yourself.",
   },
   {
     question: "Can I see candidates before posting a role?",
     answer:
-      "We show a small selection of sample profiles on our candidates page. Full access to our network is provided once a role brief is submitted.",
+      "We share a small selection of HHT Approved profiles, with consent, on our candidates page. Full access to the network is provided to registered employers with an active plan.",
   },
   {
     question: "What roles can I hire for?",
@@ -46,7 +52,7 @@ const FAQS = [
   {
     question: "How do I submit a role brief?",
     answer:
-      "Submit a role brief describing who you need. It takes less than 2 minutes. From there, our team handles the rest.",
+      "Submit a role brief describing who you need. It takes just a few minutes, and our team reviews every brief before it goes live.",
   },
 ];
 
@@ -63,20 +69,13 @@ export default function FAQPage() {
           </p>
         </div>
 
-        <div className="mt-16 space-y-4">
-          {FAQS.map((faq) => (
-            <Card key={faq.question} className="border-border bg-card">
-              <CardContent className="p-6">
-                <h3 className="font-heading text-base font-semibold text-white">
-                  {faq.question}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  {faq.answer}
-                </p>
-              </CardContent>
-            </Card>
+        <Reveal className="mt-12 border-t border-neutral-800">
+          {FAQS.map((faq, i) => (
+            <AccordionItem key={faq.question} question={faq.question} defaultOpen={i === 0}>
+              {faq.answer}
+            </AccordionItem>
           ))}
-        </div>
+        </Reveal>
 
         <div className="mt-16 text-center">
           <p className="text-muted-foreground">

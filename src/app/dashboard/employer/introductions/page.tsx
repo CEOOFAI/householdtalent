@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { candidatesForIntroductions } from '@/lib/candidates/employer-view'
+import { ConsentActions } from '@/app/dashboard/candidate/introductions/consent-actions'
 import { Card, CardContent } from '@/components/ui/card'
 import { Handshake, Clock, CheckCircle, XCircle, Inbox } from 'lucide-react'
 
@@ -9,6 +10,8 @@ interface EmployerIntroRow {
   message: string | null
   status: 'pending' | 'approved' | 'introduced' | 'declined'
   candidate_consent: 'pending' | 'accepted' | 'declined' | null
+  initiated_by: 'employer' | 'candidate'
+  employer_consent: 'pending' | 'accepted' | 'declined' | null
   admin_approved_at: string | null
   candidate_consent_at: string | null
   introduced_at: string | null
@@ -39,6 +42,14 @@ function StatusBadge({ row }: { row: EmployerIntroRow }) {
       <span className="inline-flex items-center gap-1 rounded-full bg-[#9B7B3C]/10 px-2 py-0.5 text-xs font-medium text-[#9B7B3C]">
         <Clock className="h-3 w-3" />
         With our team
+      </span>
+    )
+  }
+  if (row.status === 'approved' && row.initiated_by === 'candidate' && row.employer_consent === 'pending') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-[#9B7B3C]/15 px-2 py-0.5 text-xs font-medium text-[#9B7B3C]">
+        <Clock className="h-3 w-3" />
+        Your confirmation needed
       </span>
     )
   }
@@ -102,6 +113,8 @@ export default async function EmployerIntroductionsPage() {
       message,
       status,
       candidate_consent,
+      initiated_by,
+      employer_consent,
       admin_approved_at,
       candidate_consent_at,
       introduced_at,
@@ -203,6 +216,16 @@ export default async function EmployerIntroductionsPage() {
                   </div>
                 </div>
 
+                {row.status === 'approved' && row.initiated_by === 'candidate' && row.employer_consent === 'pending' && (
+                  <div className="mt-3 space-y-3 rounded-md border border-[#9B7B3C]/30 bg-[#9B7B3C]/5 p-4">
+                    <p className="text-sm text-white">
+                      This HHT Approved candidate has expressed interest in your role. Would you like HHT to
+                      introduce you?
+                    </p>
+                    <ConsentActions requestId={row.id} />
+                  </div>
+                )}
+
                 {row.status === 'introduced' && (
                   <div className="mt-3 rounded-md border border-green-500/20 bg-green-500/5 p-4 text-sm">
                     <p className="mb-3 text-xs font-medium uppercase tracking-wider text-green-400">
@@ -265,8 +288,8 @@ export default async function EmployerIntroductionsPage() {
 
       <p className="flex items-center gap-2 text-xs text-neutral-500">
         <Handshake className="h-3.5 w-3.5" />
-        Every introduction is reviewed by our team and confirmed by the
-        candidate before details are shared.
+        Every introduction is reviewed by HHT and confirmed by both sides
+        before any details are shared.
       </p>
     </div>
   )

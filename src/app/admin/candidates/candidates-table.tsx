@@ -17,6 +17,8 @@ export type CandidateRow = {
   gold_verified: boolean | null
   police_check_url: string | null
   police_check_uploaded_at: string | null
+  has_photo: boolean
+  has_cv: boolean
   profiles: { first_name: string; last_name: string; email: string } | null
 }
 
@@ -153,6 +155,12 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
                         <div className="text-xs text-muted-foreground">
                           {c.profiles?.email || '—'}
                         </div>
+                        {(c.has_photo || c.has_cv) && (
+                          <div className="mt-1 flex gap-3">
+                            {c.has_photo && <FileLink candidateId={c.id} kind="photo" label="Photo" />}
+                            {c.has_cv && <FileLink candidateId={c.id} kind="cv" label="CV" />}
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-sm text-muted-foreground">
                         {c.headline || '—'}
@@ -223,5 +231,33 @@ export function CandidatesTable({ rows }: { rows: CandidateRow[] }) {
         />
       )}
     </>
+  )
+}
+
+// Opens a short-lived signed link to a candidate's private photo or CV.
+function FileLink({ candidateId, kind, label }: { candidateId: string; kind: 'photo' | 'cv'; label: string }) {
+  const [busy, setBusy] = useState(false)
+  async function open() {
+    setBusy(true)
+    // Open the tab synchronously so pop-up blockers allow it, then point it at the file.
+    const tab = window.open('', '_blank')
+    try {
+      const res = await fetch(`/api/candidate-files?kind=${kind}&candidate_id=${candidateId}`)
+      const body = (await res.json()) as { url?: string; error?: string }
+      if (body.url && tab) tab.location.href = body.url
+      else {
+        tab?.close()
+        alert(body.error || 'File not available')
+      }
+    } catch {
+      tab?.close()
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <button type="button" onClick={open} disabled={busy} className="text-[11px] font-medium text-[#9B7B3C] hover:underline disabled:opacity-50">
+      {busy ? 'Opening…' : label}
+    </button>
   )
 }

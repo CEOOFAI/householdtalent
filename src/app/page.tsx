@@ -7,7 +7,9 @@ import {
   Wrench, GraduationCap, PartyPopper, Fence, Briefcase, UserCog,
   Plane, Cookie, Baby as Bottle, Palette, Sailboat, Settings2,
 } from "lucide-react";
-import { MobileNav } from "@/components/mobile-nav";
+import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { CandidateShowcase } from "@/components/candidate-showcase";
+import { Reveal, RevealGroup } from "@/components/motion/reveal";
 import { FeaturedRoles } from "@/components/featured-roles";
 import { TestimonialsMarquee } from "@/components/testimonials-marquee";
 
@@ -90,27 +92,7 @@ const ROLE_CATEGORIES: { heading: string; roles: { name: string; icon: typeof Ba
 export default async function HomePage() {
   return (
     <main className="min-h-screen">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/60 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="font-heading text-xl font-bold text-white sm:text-2xl">
-            HouseHold<span className="text-primary">Talent</span>
-          </Link>
-          <nav className="hidden items-center gap-6 lg:flex">
-            <Link href="/jobs" className="text-sm text-white/70 transition-colors hover:text-white">Open Roles</Link>
-            <Link href="/register/employer" className="text-sm text-white/70 transition-colors hover:text-white">Submit a Role Brief</Link>
-            <Link href="/register/candidate" className="text-sm text-white/70 transition-colors hover:text-white">Apply to Join</Link>
-            <Link href="/pricing" className="text-sm text-white/70 transition-colors hover:text-white">Pricing</Link>
-            <Link href="/about" className="text-sm text-white/70 transition-colors hover:text-white">About</Link>
-            <Link href="/contact" className="rounded-md border border-white/20 px-4 py-1.5 text-sm text-white transition-colors hover:bg-white/10">Contact Us</Link>
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link href="/login" className="hidden text-sm text-white/70 transition-colors hover:text-white sm:block">Dashboard</Link>
-            <Link href="/register/employer" className="hidden btn-gold rounded-md px-3 py-1.5 text-xs sm:block sm:px-4 sm:py-2 sm:text-sm">Submit a Role Brief</Link>
-            <MobileNav />
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero - Butler service, white gloves */}
       <section className="relative flex min-h-[90vh] items-center justify-center overflow-hidden sm:min-h-screen">
@@ -128,26 +110,26 @@ export default async function HomePage() {
         </div>
 
         <div className="relative mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <div className="mb-4 inline-block rounded-full border border-primary/40 bg-black/40 px-4 py-1.5 backdrop-blur-sm sm:mb-6 sm:px-5 sm:py-2">
-            <span className="text-[10px] font-medium uppercase tracking-widest text-primary sm:text-xs">
-              Gibraltar & International
+          <div style={{ animationDelay: "0ms" }} className="animate-fade-up mb-4 inline-block rounded-full border border-primary/40 bg-black/40 px-4 py-1.5 backdrop-blur-sm sm:mb-6 sm:px-5 sm:py-2">
+            <span className="text-xs font-medium uppercase tracking-widest text-[#C9A45C]">
+              Gibraltar · Costa del Sol · International
             </span>
           </div>
-          <h1 className="font-heading text-4xl font-light leading-tight text-white sm:text-5xl lg:text-7xl">
+          <h1 style={{ animationDelay: "80ms" }} className="animate-fade-up font-heading text-4xl font-light leading-tight text-white sm:text-5xl lg:text-7xl">
             Exceptional Staff
             <br />
-            <span className="text-primary">for Exemplary Homes.</span>
+            <span className="text-[#C9A45C] [text-shadow:0_2px_24px_rgba(0,0,0,0.6)]">for Exemplary Homes.</span>
           </h1>
-          <p className="mx-auto mt-3 text-lg font-medium tracking-wide text-primary sm:mt-4 sm:text-xl">
+          <p style={{ animationDelay: "160ms" }} className="animate-fade-up mx-auto mt-3 text-lg font-medium tracking-wide text-[#C9A45C] sm:mt-4 sm:text-xl">
             Selected, not listed.
           </p>
-          <p className="mx-auto mt-3 max-w-xl text-sm text-white/70 sm:mt-4 sm:text-lg">
-            Direct access to carefully selected household staff.
+          <p style={{ animationDelay: "220ms" }} className="animate-fade-up mx-auto mt-3 max-w-xl text-sm text-white/80 sm:mt-4 sm:text-lg">
+            Private introductions to carefully selected household staff, facilitated by HouseHoldTalent (HHT).
           </p>
-          <p className="mx-auto mt-4 max-w-xl text-xs uppercase tracking-widest text-white/50 sm:mt-5 sm:text-sm">
-            Access by referral, recommendation or application. Every member personally reviewed.
+          <p style={{ animationDelay: "280ms" }} className="animate-fade-up mx-auto mt-4 max-w-xl text-xs uppercase tracking-widest text-white/60 sm:mt-5 sm:text-sm">
+            Access by referral, recommendation or application. Every member individually reviewed.
           </p>
-          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row sm:gap-4">
+          <div style={{ animationDelay: "340ms" }} className="animate-fade-up mt-6 flex flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row sm:gap-4">
             <Link
               href="/register/employer"
               className="btn-gold flex w-full items-center justify-center gap-2 rounded-md px-6 py-3 text-sm sm:w-auto sm:px-8 sm:py-3.5 sm:text-base"
@@ -164,13 +146,19 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Candidate showcase: the calibre of the network */}
+      <CandidateShowcase />
+
       {/* Featured Open Roles */}
-      <FeaturedRoles />
+      <Reveal>
+        <FeaturedRoles />
+      </Reveal>
 
       {/* Testimonials marquee */}
       <TestimonialsMarquee />
 
       {/* How It Works - Cream */}
+      <Reveal>
       <section className="bg-cream py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="text-center">
@@ -197,12 +185,12 @@ export default async function HomePage() {
               <h3 className="mb-6 font-heading text-xl font-light text-gray-900 sm:mb-8 sm:text-2xl">
                 For <span className="text-primary">Employers</span>
               </h3>
-              <div className="space-y-5 sm:space-y-6">
+              <RevealGroup stagger={90} className="space-y-5 sm:space-y-6">
                 {[
-                  { step: "01", title: "Tell Us What You Need", desc: "Submit a role brief outlining your ideal candidate. Select the role type, responsibilities, experience level and any specific preferences." },
-                  { step: "02", title: "We Find the Right Match", desc: "Our team personally reviews your brief and curates a shortlist from our private network of vetted professionals." },
-                  { step: "03", title: "We Make the Introduction", desc: "We introduce you to a small number of carefully selected candidates. No noise. No irrelevant profiles. Just the right people, presented professionally." },
-                  { step: "04", title: "You Take It From There", desc: "You review each introduction and decide who to meet. We remain available throughout to support or refine the search if needed." },
+                  { step: "01", title: "Post a Role or Browse the Network", desc: "Submit a role brief and/or browse anonymised profiles from the HHT Approved network. Every profile is individually reviewed by our team before admission." },
+                  { step: "02", title: "Request an Introduction", desc: "When a profile interests you, request an introduction. Contact details are never shared automatically. HHT stays in the middle." },
+                  { step: "03", title: "We Review, the Candidate Consents", desc: "Our team reviews each request and the candidate confirms they wish to be introduced. Details are released only with consent." },
+                  { step: "04", title: "HHT Facilitates the Introduction", desc: "We make the introduction personally and discreetly. With Priority Search, HHT actively searches on your behalf and delivers a curated shortlist." },
                 ].map((item) => (
                   <div key={item.step} className="flex gap-3 border-l-2 border-primary/30 pl-4 sm:gap-4 sm:pl-5">
                     <span className="font-heading text-2xl font-light text-primary sm:text-3xl">{item.step}</span>
@@ -212,7 +200,7 @@ export default async function HomePage() {
                     </div>
                   </div>
                 ))}
-              </div>
+              </RevealGroup>
               <div className="mt-8">
                 <Link
                   href="/register/employer"
@@ -239,12 +227,12 @@ export default async function HomePage() {
               <h3 className="mb-6 font-heading text-xl font-light text-gray-900 sm:mb-8 sm:text-2xl">
                 For <span className="text-primary">Candidates</span>
               </h3>
-              <div className="space-y-5 sm:space-y-6">
+              <RevealGroup stagger={90} className="space-y-5 sm:space-y-6">
                 {[
                   { step: "01", title: "Apply to Join the Network", desc: "Submit your application and tell us about your experience, role specialism, languages and availability." },
-                  { step: "02", title: "We Review Your Application", desc: "Every application is personally reviewed. Not every application is accepted, and that is intentional." },
-                  { step: "03", title: "Build Your Profile", desc: "Accepted members build a complete profile inside the member dashboard, ready to be presented to the right households." },
-                  { step: "04", title: "Be Introduced", desc: "When the right role comes along, we make the connection personally. No cold applications. Just warm, considered introductions." },
+                  { step: "02", title: "We Review Your Application", desc: "Every application is individually reviewed by our team. Not every application is accepted, and that is intentional." },
+                  { step: "03", title: "Build Your Profile", desc: "Approved members build a complete HHT Approved profile inside the member dashboard. Membership is complimentary." },
+                  { step: "04", title: "Be Introduced", desc: "Browse suitable roles and request introductions, or be requested by employers. HHT facilitates every connection, and your details are shared only with your consent." },
                 ].map((item) => (
                   <div key={item.step} className="flex gap-3 border-l-2 border-primary/30 pl-4 sm:gap-4 sm:pl-5">
                     <span className="font-heading text-2xl font-light text-primary sm:text-3xl">{item.step}</span>
@@ -254,7 +242,7 @@ export default async function HomePage() {
                     </div>
                   </div>
                 ))}
-              </div>
+              </RevealGroup>
               <div className="mt-8">
                 <Link
                   href="/register/candidate"
@@ -267,8 +255,10 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Role Categories */}
+      <Reveal>
       <section className="relative py-16 sm:py-24">
         <div className="absolute inset-0">
           <Image
@@ -314,8 +304,10 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Founding Member Access */}
+      <Reveal>
       <section className="bg-black py-16 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 text-center sm:px-6">
           <div className="mb-4 inline-block rounded-full border border-primary/40 bg-black/40 px-4 py-1.5 backdrop-blur-sm">
@@ -331,13 +323,13 @@ export default async function HomePage() {
             HouseHoldTalent is personally onboarding its first founding members, both candidates and households.
           </p>
           <p className="mt-4 text-sm leading-relaxed text-white/60 sm:text-base">
-            For candidates: if you have been referred or invited, your application will be reviewed with priority. Founding candidates receive a complimentary professionally curated HHT profile.
+            For candidates: if you have been referred or invited, your application will be reviewed with priority. Membership is complimentary for approved candidates.
           </p>
           <p className="mt-4 text-sm leading-relaxed text-white/60 sm:text-base">
-            For private households and family offices: our first founding employer members are invited to post one role complimentary and receive curated candidate introductions from our founding network. Places are strictly limited.
+            For private households and family offices: our first founding employer members are invited to post one role on a complimentary basis and request introductions from our founding network. Founding membership is offered to a limited number of households.
           </p>
           <p className="mt-4 text-sm leading-relaxed text-white/60 sm:text-base">
-            To enquire about founding membership, get in touch directly.
+            To enquire about founding membership, please get in touch.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -355,6 +347,7 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Image break - White glove service */}
       <section className="relative h-56 overflow-hidden sm:h-72 md:h-96">
@@ -372,12 +365,13 @@ export default async function HomePage() {
             &ldquo;Selected, not listed.&rdquo;
           </p>
           <p className="mt-2 text-xs text-white/60 sm:text-sm">
-            Every candidate is personally reviewed before being introduced.
+            Every candidate is individually reviewed before admission.
           </p>
         </div>
       </section>
 
       {/* CTA */}
+      <Reveal>
       <section className="relative py-16 sm:py-24">
         <div className="absolute inset-0">
           <Image
@@ -396,7 +390,7 @@ export default async function HomePage() {
           </h2>
           <div className="mx-auto mt-2 h-px w-16 bg-primary" />
           <p className="mt-4 text-sm text-white/60 sm:mt-6 sm:text-base">
-            Discreet hiring for private households across the UK, Europe and the Middle East. Access by referral, recommendation or application only.
+            Discreet, HHT-facilitated introductions for private households in Gibraltar, the Costa del Sol and internationally. Access by referral, recommendation or application only.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:mt-8 sm:flex-row sm:gap-4">
             <Link href="/register/employer" className="btn-gold w-full rounded-md px-6 py-3 text-sm sm:w-auto sm:px-8 sm:py-3.5 sm:text-base">Submit a Role Brief</Link>
@@ -404,12 +398,13 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Trust Bar */}
       <section className="bg-ornate py-4 sm:py-6">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-4 px-4 text-xs text-white/50 sm:gap-8 sm:text-sm">
           <span className="flex items-center gap-1.5 sm:gap-2">
-            <ShieldCheck className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" /> Curated & Vetted
+            <ShieldCheck className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" /> HHT Approved
           </span>
           <span className="flex items-center gap-1.5 sm:gap-2">
             <Check className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" /> Selected, not listed
@@ -420,57 +415,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-black py-10 sm:py-12">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
-            <div>
-              <span className="font-heading text-xl font-bold text-white">
-                HouseHold<span className="text-primary">Talent</span>
-              </span>
-              <p className="mt-3 text-xs text-white/40 sm:text-sm">Exceptional Staff. Exemplary Homes.</p>
-              <p className="mt-2 text-[10px] uppercase tracking-widest text-white/30 sm:text-xs">
-                Access by referral, recommendation or application only.
-              </p>
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">Company</h4>
-              <ul className="mt-3 space-y-2">
-                <li><Link href="/about" className="text-xs text-white/40 hover:text-white sm:text-sm">About</Link></li>
-                <li><Link href="/how-it-works" className="text-xs text-white/40 hover:text-white sm:text-sm">How It Works</Link></li>
-                <li><Link href="/pricing" className="text-xs text-white/40 hover:text-white sm:text-sm">Pricing</Link></li>
-                <li><Link href="/dashboard/employer/resources" className="text-xs text-white/40 hover:text-white sm:text-sm">Resources</Link></li>
-                <li><Link href="/contact" className="text-xs text-white/40 hover:text-white sm:text-sm">Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">Legal</h4>
-              <ul className="mt-3 space-y-2">
-                <li><Link href="/terms" className="text-xs text-white/40 hover:text-white sm:text-sm">Terms &amp; Conditions</Link></li>
-                <li><Link href="/candidate-terms" className="text-xs text-white/40 hover:text-white sm:text-sm">Candidate Terms</Link></li>
-                <li><Link href="/privacy" className="text-xs text-white/40 hover:text-white sm:text-sm">Privacy Policy</Link></li>
-                <li><Link href="/faq" className="text-xs text-white/40 hover:text-white sm:text-sm">FAQ</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wider text-white/60">Apply</h4>
-              <ul className="mt-3 space-y-2">
-                <li><Link href="/register/employer" className="text-xs text-white/40 hover:text-white sm:text-sm">Submit a Role Brief</Link></li>
-                <li><Link href="/register/candidate" className="text-xs text-white/40 hover:text-white sm:text-sm">Apply to Join</Link></li>
-                <li><Link href="/login" className="text-xs text-white/40 hover:text-white sm:text-sm">Dashboard</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-8 border-t border-white/10 pt-6 text-center sm:pt-8">
-            <p className="text-[10px] text-white/30 sm:text-xs">
-              Need help? Our concierge team is <Link href="/contact" className="text-primary hover:underline">here to assist</Link>.
-            </p>
-            <p className="mt-1 text-[10px] text-white/30 sm:mt-2 sm:text-xs">
-              &copy; {new Date().getFullYear()} HouseHoldTalent. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

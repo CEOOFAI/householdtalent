@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Mail, MapPin, Clock, Loader2 } from "lucide-react";
 
@@ -15,6 +15,12 @@ export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+
+  // Preselect the enquiry type when arriving from /agencies (?type=agency).
+  useEffect(() => {
+    const type = new URLSearchParams(window.location.search).get("type");
+    if (type === "agency") setRole("Recruitment agency");
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,8 +64,9 @@ export default function ContactPage() {
             Get in Touch
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Whether you are a private household, a family office, or a
-            professional in private service, we would be glad to hear from you.
+            Whether you are a private household, a family office, a recruitment
+            agency or a professional in private service, we would be glad to
+            hear from you.
           </p>
         </div>
 
@@ -74,7 +81,7 @@ export default function ContactPage() {
                   </div>
                   <h3 className="text-lg font-semibold text-white">Message Sent</h3>
                   <p className="mt-2 text-sm text-muted-foreground">
-                    We&apos;ll get back to you within 24 hours.
+                    We aim to respond within 24 hours on business days.
                   </p>
                 </div>
               ) : (
@@ -136,7 +143,7 @@ export default function ContactPage() {
                     >
                       <option>Employer looking for staff</option>
                       <option>Candidate looking for work</option>
-                      <option>Recruitment Professional</option>
+                      <option>Recruitment agency</option>
                       <option>Other</option>
                     </select>
                   </div>
@@ -225,7 +232,7 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-medium text-white">Location</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Gibraltar &amp; International
+                    Gibraltar, the Costa del Sol and internationally
                   </p>
                 </div>
               </CardContent>

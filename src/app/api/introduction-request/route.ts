@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
 
   let employer_id: string;
   let actual_candidate_id: string;
+  let initiated_by: 'employer' | 'candidate' = 'employer';
 
   if (employerProfile) {
     // Employer requesting introduction to candidate
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
   } else if (candidateProfile) {
     // Candidate expressing interest in a role
     actual_candidate_id = candidateProfile.id;
+    initiated_by = 'candidate';
     // Only approved (active) candidates can express interest, and only in live roles.
     const { data: me } = await admin
       .from('candidate_profiles')
@@ -110,6 +112,12 @@ export async function POST(req: NextRequest) {
       role_id,
       message: message || null,
       status: 'pending',
+      initiated_by,
+      // A candidate expressing interest has already consented on their side;
+      // the employer is asked to confirm once HHT approves.
+      ...(initiated_by === 'candidate'
+        ? { candidate_consent: 'accepted', candidate_consent_at: new Date().toISOString() }
+        : {}),
     })
     .select()
     .single();
